@@ -1,0 +1,1 @@
+export default function App() { return ( <div style={{ padding: '2rem', textAlign: 'center' }}> <h1>✈️ Avrupa Turu 2026</h1> <p>Hoşgeldiniz! Avrupa'nın en güzel şehirlerini keşfetmeye hazır mısınız?</p> </div> ) }
