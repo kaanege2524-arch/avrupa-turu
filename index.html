@@ -22,7 +22,7 @@ input,button{font-family:Georgia,serif;}
 <body>
 <div id="root"></div>
 <script type="text/babel" data-presets="react">
-const {useState,useRef}=React;
+const {useState,useEffect,useCallback,useRef}=React;
 const load=(k,fb)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):fb;}catch{return fb;}};
 const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch{}};
 const resizeImg=file=>new Promise(res=>{const rd=new FileReader();rd.onload=e=>{const img=new Image();img.onload=()=>{const r=Math.min(800/img.width,800/img.height,1);const c=document.createElement("canvas");c.width=img.width*r;c.height=img.height*r;c.getContext("2d").drawImage(img,0,0,c.width,c.height);res(c.toDataURL("image/jpeg",0.72));};img.src=e.target.result;};rd.readAsDataURL(file);});
