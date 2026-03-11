@@ -8,6 +8,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Avrupa Turu"/>
 <title>Avrupa Turu 2026</title>
+<link rel="manifest" href="manifest.json"/>
+<meta name="mobile-web-app-capable" content="yes"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
@@ -595,14 +597,15 @@ function App(){
       {/* CITIES TAB */}
       {activeTab==="cities"&&<div>
         {cities.map(c=>{const p=getCityProg(c);return(
-          <div key={c.id} onClick={()=>{setSelCity(c.id);setCityTab("checklist");}} style={{background:c.bg,borderRadius:13,marginBottom:9,overflow:"hidden",cursor:"pointer",border:"1px solid rgba(255,255,255,0.05)"}}>
-            <div style={{padding:"12px 13px"}}>
+          <div key={c.id} style={{background:c.bg,borderRadius:13,marginBottom:9,overflow:"hidden",border:"1px solid rgba(255,255,255,0.05)",position:"relative"}}>
+            {c.isCustom&&<button onClick={e=>{e.stopPropagation();if(window.confirm(`"${c.name}" şehrini silmek istiyor musunuz?`))deleteCity(c.id);}} style={{position:"absolute",top:8,right:8,zIndex:5,background:"rgba(0,0,0,0.6)",border:"1px solid rgba(255,80,80,0.4)",color:"#ff6666",borderRadius:7,padding:"3px 7px",cursor:"pointer",fontSize:11,fontWeight:"bold",lineHeight:1}}>✕</button>}
+            <div onClick={()=>{setSelCity(c.id);setCityTab("checklist");}} style={{padding:"12px 13px",cursor:"pointer"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:7}}>
                 <div style={{display:"flex",alignItems:"center",gap:6}}>
                   <span style={{fontSize:22}}>{c.flag}</span>
                   <div><div style={{fontSize:14,fontWeight:"bold"}}>{c.name}</div><div style={{fontSize:9,opacity:0.6,marginTop:1}}>{c.country}</div></div>
                 </div>
-                <div style={{textAlign:"right"}}>
+                <div style={{textAlign:"right",paddingRight:c.isCustom?24:0}}>
                   <div style={{fontSize:10,color:c.accent,fontWeight:"bold"}}>{c.dates||"—"}</div>
                   <div style={{fontSize:9,opacity:0.5,marginTop:1}}>{c.nights} gece</div>
                 </div>
@@ -614,6 +617,7 @@ function App(){
               <div style={{display:"flex",gap:4,marginTop:6,flexWrap:"wrap"}}>
                 {["restaurants","foods","snacks","attractions","activities"].map(t=>{const items=getItems(c.id,t);const done=items.filter((_,i)=>getChecked(c.id,t,i)).length;return items.length>0&&<div key={t} style={{background:"rgba(0,0,0,0.3)",borderRadius:5,padding:"2px 6px",fontSize:8,color:done===items.length?c.accent:"rgba(255,255,255,0.4)"}}>{done}/{items.length} {t==="restaurants"?"🍽️":t==="foods"?"🥘":t==="snacks"?"🍿":t==="attractions"?"🗺️":"🎯"}</div>;})}
               </div>
+            </div>
             </div>
           </div>
         );})}
@@ -666,6 +670,11 @@ function App(){
 }
 
 ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+<script>
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').then(()=>console.log('SW registered')).catch(e=>console.log('SW error',e));
+}
 </script>
 </body>
 </html>
