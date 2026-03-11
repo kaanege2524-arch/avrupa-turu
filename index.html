@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<meta name="theme-color" content="#080808"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Avrupa Turu"/>
+<link rel="manifest" href="manifest.json"/>
+<title>✈️ Avrupa Turu 2026</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{background:#080808;color:#fff;font-family:Georgia,serif;max-width:480px;margin:0 auto;min-height:100vh;}
+::-webkit-scrollbar{display:none;}
+a{color:inherit;text-decoration:none;}
+button,input{font-family:Georgia,serif;}
+.page{min-height:100vh;}
+.hidden{display:none!important;}
+input:focus{outline:none;}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+// ── STORAGE ──
+const load=(k,fb)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):fb;}catch{return fb;}};
+const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch{}};
+
+// ── DATA ──
+const CITIES0=[
+{id:"bremen",name:"Bremen",flag:"🇩🇪",country:"Almanya",dates:"5–7 Tem",nights:3,currency:"€ Euro",currencyTip:"Nakit tercih edilir.",accent:"#f5a623",bg:"linear-gradient(135deg,#1a3a5c,#2d6a9f)",
+restaurants:[
+{name:"Bremen Ratskeller",emoji:"🍺",type:"Akşam — 1.Gece",addr:"Am Markt 28195",phone:"+49 421 321676",hours:"Her gün 11:00–00:00",price:"€25–35/kişi",family:"~€75–105",reserve:"ŞART — 3 gün önce",order:["Labskaus","Ördek but","Weizen birası"],tip:"1408'den beri açık!",mq:"Bremen Ratskeller"},
+{name:"Kleiner Olymp",emoji:"🥩",type:"Öğle — 2.Gün",addr:"Hinter d. Holzpforte 20",phone:"+49 421 326667",hours:"12:30–23:30",price:"€18–25/kişi",family:"~€54–75",reserve:"Akşam şart",order:["Schnitzel mantar soslu","Karidesli pappardelle"],tip:"Dev Schnitzel!",mq:"Kleiner Olymp Bremen"}],
+foods:[{name:"Knipp",emoji:"🥚",price:"€8–12",where:"Marktplatz kafeler",mq:"cafe Bremen"},{name:"Alman Sosis Tabağı",emoji:"🌭",price:"€10–14",where:"Sokak tezgahları",mq:"sausage Bremen"},{name:"Rote Grütze",emoji:"🍒",price:"€5–7",where:"Her kafede",mq:"cafe Bremen"},{name:"Pretzel",emoji:"🥨",price:"€2–3",where:"Fırınlar",mq:"bakery Bremen"}],
+snacks:[{name:"Haribo (Alman orijinali!)",emoji:"🍬",price:"€1–3",where:"Her markette",mq:"supermarket Bremen"},{name:"Kümmelkäse",emoji:"🧀",price:"€3–5",where:"Pazar tezgahları",mq:"market Bremen"},{name:"Bremerhaven Balık Sandviç",emoji:"🐟",price:"€4–7",where:"Bremerhaven",mq:"fish Bremerhaven"}],
+attractions:[{name:"Marktplatz & Roland Heykeli",emoji:"🏛️",price:"Ücretsiz",tip:"Rathaus turu €7.50",mq:"Marktplatz Bremen"},{name:"Böttcherstrasse",emoji:"🎨",price:"Ücretsiz",tip:"Saatlik çan müziği",mq:"Böttcherstrasse Bremen"},{name:"Schnoorviertel",emoji:"🏘️",price:"Ücretsiz",tip:"Ortaçağ atmosferi",mq:"Schnoorviertel Bremen"},{name:"Übersee-Museum",emoji:"🌍",price:"€11/kişi",tip:"Salı kapalı.",mq:"Übersee-Museum Bremen"},{name:"Bremen Town Musicians",emoji:"🐴",price:"Ücretsiz",tip:"Eşeğin önayaklarına dokun!",mq:"Bremen Town Musicians"}],
+activities:[{name:"Bürgerpark Sandal",emoji:"🚣",price:"€10",mq:"Bürgerpark Bremen"},{name:"Bremerhaven Deniz Müzesi",emoji:"⚓",price:"€18/kişi",tip:"1.5 saat tren.",mq:"Maritime Museum Bremerhaven"}]},
+
+{id:"liege",name:"Liège",flag:"🇧🇪",country:"Belçika",dates:"8–9 Tem",nights:2,currency:"€ Euro",currencyTip:"Kart yaygın, küçük yerler nakit.",accent:"#f4d03f",bg:"linear-gradient(135deg,#1b4332,#2d6a4f)",
+restaurants:[
+{name:"Une Gaufrette Saperlipopette",emoji:"🧇",type:"Kahvaltı",addr:"Rue des Mineurs 18",phone:"+32 4 222 37 54",hours:"07:00–18:30",price:"€5–8/kişi",family:"~€15–24",reserve:"Yok — Erken git!",order:["Vanilya waffle","Çikolatalı waffle"],tip:"Dışı çıtır içi pamuk!",mq:"Gaufrette Liège"},
+{name:"Café Lequet",emoji:"🥘",type:"Akşam",addr:"Quai sur Meuse 17",phone:"+32 4 222 21 34",hours:"Sal–Cmt 12:00–22:00",price:"€18–28/kişi",family:"~€55–85",reserve:"1–2 gün önce",order:["Boulets à la Liégeoise","Bière de Liège"],tip:"1902'den beri! Milli yemek.",mq:"Café Lequet Liège"}],
+foods:[{name:"Belçika Friti",emoji:"🍟",price:"€3–5",where:"Eski şehir",mq:"frite Liège"},{name:"Belçika Çikolatası",emoji:"🍫",price:"€8–20",where:"Çikolata dükkanları",mq:"chocolate Liège"}],
+snacks:[{name:"Gaufre de Liège (sokak)",emoji:"🧇",price:"€2–3",where:"Sokak tezgahları",mq:"waffle Liège"},{name:"Speculoos",emoji:"🍪",price:"€3–5",where:"Süpermarket",mq:"supermarket Liège"},{name:"Praline Çikolata",emoji:"🍫",price:"€1–2/adet",where:"Çikolata dükkanları",mq:"chocolate Liège"}],
+attractions:[{name:"Montagne de Bueren (374 basamak)",emoji:"🪜",price:"Ücretsiz",tip:"Şehir panoraması!",mq:"Montagne de Bueren Liège"},{name:"Liège-Guillemins Gar",emoji:"🚉",price:"Ücretsiz",tip:"Calatrava mimarisi!",mq:"Liège-Guillemins"},{name:"La Boverie Müzesi",emoji:"🖼️",price:"€10/kişi",tip:"Pzt kapalı.",mq:"La Boverie Liège"},{name:"Batte Pazarı (8 Tem Pazar)",emoji:"🛒",price:"Ücretsiz",tip:"Dev pazar!",mq:"Batte market Liège"}],
+activities:[{name:"Waffle Turu",emoji:"🧇",price:"€12–15",tip:"3 farklı yer.",mq:"waffle Liège"},{name:"Meuse Nehri Yürüyüşü",emoji:"🌊",price:"Ücretsiz",mq:"Meuse river Liège"}]},
+
+{id:"paris",name:"Paris",flag:"🇫🇷",country:"Fransa",dates:"10–13 Tem",nights:4,currency:"€ Euro",currencyTip:"Kart her yerde.",accent:"#e74c8b",bg:"linear-gradient(135deg,#4a1040,#8e2469)",
+restaurants:[
+{name:"Brasserie des Prés",emoji:"🥩",type:"Akşam — 1.Gece",addr:"6 Cour du Commerce Saint-André",phone:"+33 1 42 03 44 13",hours:"Her gün 12:00–00:00",price:"€28–42/kişi",family:"~€85–125",reserve:"ŞART — 1 hafta önce",order:["Bœuf Bourguignon","Duck Breast","Profiteroles"],tip:"Muhteşem!",mq:"Brasserie des Prés Paris"},
+{name:"Brasserie Bellanger",emoji:"🐌",type:"Öğle — 3.Gün",addr:"140 Rue Faubourg Poissonnière",phone:"+33 9 54 00 99 65",hours:"Her gün 09:00–23:30",price:"€22–35/kişi",family:"~€66–105",reserve:"Akşam için şart",order:["Escargot!","Soupe à l'oignon","Crème brûlée"],tip:"En iyi soğan çorbası!",mq:"Brasserie Bellanger Paris"}],
+foods:[{name:"Pain au Chocolat",emoji:"🥐",price:"€1–2",where:"Her boulangerie",mq:"boulangerie Paris"},{name:"Crêpe sokak",emoji:"🥞",price:"€4–7",where:"Montmartre",mq:"crepe Paris"},{name:"Macaron (Ladurée)",emoji:"🍬",price:"€3–4/adet",where:"75 Champs-Élysées",mq:"Ladurée Paris"},{name:"Jambon-beurre",emoji:"🥪",price:"€4–6",where:"Her bistro",mq:"bistro Paris"}],
+snacks:[{name:"Madeleine Keki",emoji:"🧁",price:"€2–4",where:"Her fırın",mq:"madeleine Paris"},{name:"Éclair",emoji:"🍰",price:"€3–5",where:"Patisserie",mq:"eclair Paris"},{name:"Baguette",emoji:"🥖",price:"€1–2",where:"Her fırın",mq:"boulangerie Paris"},{name:"Chocolat Chaud",emoji:"☕",price:"€5–8",where:"Café de Flore",mq:"Café de Flore Paris"}],
+attractions:[{name:"Eyfel Kulesi",emoji:"🗼",price:"€19–28/kişi",tip:"6 HAFTA ÖNCE AL! ticket.toureiffel.paris",mq:"Eiffel Tower Paris"},{name:"Louvre",emoji:"🏛️",price:"€22/kişi",tip:"6 HAFTA ÖNCE! Salı kapalı.",mq:"Louvre Paris"},{name:"Versailles",emoji:"👑",price:"€21/kişi",tip:"RER C ~€7. 4 HAFTA ÖNCE.",mq:"Palace of Versailles"},{name:"Notre Dame",emoji:"⛪",price:"Ücretsiz",tip:"Restore edildi!",mq:"Notre Dame Paris"},{name:"Arc de Triomphe",emoji:"🏅",price:"€13/kişi",tip:"Gün batımında güzel.",mq:"Arc de Triomphe Paris"},{name:"Montmartre",emoji:"🎨",price:"Ücretsiz",tip:"Sanatçı meydanı.",mq:"Montmartre Paris"}],
+activities:[{name:"14 Temmuz Bastille Günü!",emoji:"🎆",price:"Ücretsiz",tip:"Askeri geçit + havai fişek!",mq:"Champs Elysées Paris"},{name:"Seine Tekne Turu",emoji:"🚢",price:"€17/kişi",tip:"Gece turu.",mq:"Bateaux Mouches Paris"}]},
+
+{id:"interlaken",name:"İnterlaken",flag:"🇨🇭",country:"İsviçre",dates:"14–16 Tem",nights:3,currency:"CHF Frangı",currencyTip:"En pahalı durak! Euro da geçer.",accent:"#4fc3f7",bg:"linear-gradient(135deg,#0f2d4a,#1a6b8a)",
+restaurants:[
+{name:"Harder Kulm Restaurant",emoji:"🏔️",type:"Akşam — 2.Gece",addr:"Harderkulm, Interlaken",phone:"+41 33 828 73 11",hours:"09:30–17:00",price:"CHF 38–55/kişi",family:"~CHF 115–165",reserve:"Önceden al!",order:["Cheese Fondue","Cordon Bleu","Rösti"],tip:"Dağ tepesinde iki gölü görürken!",mq:"Harder Kulm Restaurant Interlaken"},
+{name:"Restaurant Laterne",emoji:"🧀",type:"Akşam — 1.Gece",addr:"Obere Gasse 2",phone:"+41 33 822 87 33",hours:"Sal–Paz 17:00–22:30",price:"CHF 28–42/kişi",family:"~CHF 85–126",reserve:"Aynı gün telefon",order:["Raclette","Rösti"],tip:"Raclette çocuklar seviyor!",mq:"Restaurant Laterne Interlaken"}],
+foods:[{name:"İsviçre Çikolatası",emoji:"🍫",price:"CHF 5–25",where:"Marktgasse",mq:"chocolate Interlaken"},{name:"Müsli Kahvaltısı",emoji:"🥣",price:"CHF 8–14",where:"Kafeler",mq:"cafe Interlaken"}],
+snacks:[{name:"Toblerone (orijinal)",emoji:"🍫",price:"CHF 4–8",where:"Her markette",mq:"supermarket Interlaken"},{name:"Raclette Sokak",emoji:"🧀",price:"CHF 8–12",where:"Şehir merkezi",mq:"raclette Interlaken"},{name:"Ovomaltine",emoji:"☕",price:"CHF 4–7",where:"Her kafe",mq:"cafe Interlaken"}],
+attractions:[{name:"Jungfraujoch",emoji:"🏔️",price:"CHF 208/kişi",tip:"3 HAFTA ÖNCE! jungfrau.ch Üstte 0°C!",mq:"Jungfraujoch"},{name:"Harder Kulm + Two Lakes Bridge",emoji:"🚡",price:"CHF 32/kişi",tip:"İki gölü aynı anda!",mq:"Harder Kulm Interlaken"},{name:"Höhematte Parkı",emoji:"🪂",price:"Ücretsiz",tip:"Paraşütçüler iniyor!",mq:"Höhematte Interlaken"},{name:"Brienz Gölü Tekne",emoji:"⛵",price:"CHF 38/kişi",tip:"Turkuaz su!",mq:"Lake Brienz boat"}],
+activities:[{name:"Jungfraujoch Tam Gün",emoji:"🏔️",price:"CHF 208/kişi",tip:"Buz Sarayı + Sfenks.",mq:"Jungfraujoch"},{name:"Göl Kayığı",emoji:"🚣",price:"CHF 25–40/saat",mq:"boat rental Interlaken"}]},
+
+{id:"milano",name:"Milano",flag:"🇮🇹",country:"İtalya",dates:"17–18 Tem",nights:2,currency:"€ Euro",currencyTip:"Kart ve nakit.",accent:"#f39c12",bg:"linear-gradient(135deg,#4a2000,#9b4d0a)",
+restaurants:[
+{name:"Trattoria la Vecchia Guardia",emoji:"🍝",type:"⚠️ PAZARTESİ KAPALI",addr:"Via della Commenda 21",phone:"+39 02 3663 1188",hours:"Sal–Paz 12:00–22:30",price:"€32–45/kişi",family:"~€96–135",reserve:"ŞART — 3 gün önce!",order:["Risotto alla Milanese","Ossobuco","Cotoletta"],tip:"1967'den beri! Ossobuco efsane.",mq:"Trattoria Vecchia Guardia Milano"},
+{name:"Gloria Osteria",emoji:"🌟",type:"Akşam — 2.Gece",addr:"Via Tivoli 3",phone:"+39 344 073 9345",hours:"Her gün 12:00–23:00",price:"€38–55/kişi",family:"~€114–165",reserve:"ŞART — gloria-osteria.com",order:["Cacio e Pepe","Steak Filet","Çikolata sufle"],tip:"Milano'nun en iyi restoranı!",mq:"Gloria Osteria Milano"}],
+foods:[{name:"Aperitivo (Navigli)",emoji:"🍹",price:"€8–12",where:"Navigli 18:00+",mq:"aperitivo Navigli"},{name:"Gelato (Peck)",emoji:"🍦",price:"€3–5",where:"Via Spadari 9",mq:"Peck Milano"},{name:"Espresso",emoji:"☕",price:"€1–2",where:"Her bar",mq:"espresso bar Milano"},{name:"Panzerotti (Luini)",emoji:"🥐",price:"€3–5",where:"Via S. Radegonda 16",mq:"Luini Milano"}],
+snacks:[{name:"Amaretti",emoji:"🍪",price:"€3–6",where:"Şekerleme dükkanı",mq:"amaretti Milano"},{name:"Grissini",emoji:"🥖",price:"€2–3",where:"Her markette",mq:"supermarket Milano"},{name:"Granita al Limone",emoji:"🍋",price:"€3–5",where:"Kafeler",mq:"granita Milano"}],
+attractions:[{name:"Duomo + Çatı",emoji:"⛩️",price:"€20/kişi",tip:"3 HAFTA ÖNCE! duomomilano.it",mq:"Duomo Milano rooftop"},{name:"Son Akşam Yemeği",emoji:"🎨",price:"€15/kişi",tip:"3–4 AY ÖNCE! vivaticket.com",mq:"Last Supper Milano"},{name:"Sforzesco Kalesi",emoji:"🏰",price:"Ücretsiz",tip:"Michelangelo'nun son eseri!",mq:"Sforzesco Castle Milano"},{name:"Galleria Vittorio Emanuele II",emoji:"🏪",price:"Ücretsiz",mq:"Galleria Milano"},{name:"Navigli Kanalları",emoji:"🌊",price:"Ücretsiz",tip:"18:00+ aperitivo!",mq:"Navigli Milano"}],
+activities:[{name:"Duomo Çatısı Turu",emoji:"⛩️",price:"€14–20/kişi",mq:"Duomo Milano"},{name:"Son Akşam Yemeği Turu",emoji:"🎨",price:"€15/kişi",mq:"Last Supper Milano"}]},
+
+{id:"venice",name:"Venedik",flag:"🇮🇹",country:"İtalya",dates:"19–21 Tem",nights:3,currency:"€ Euro",currencyTip:"Her şey %20–30 pahalı! Nakit.",accent:"#4fc3f7",bg:"linear-gradient(135deg,#0d2b45,#1a5276)",
+restaurants:[
+{name:"Osteria Al Squero",emoji:"🥂",type:"Öğle & Aperatif",addr:"Dorsoduro 944",phone:"+39 041 296 0479",hours:"Pzt–Cum 10:30–21:00 (PAZ KAPALI)",price:"€10–18/kişi",family:"~€30–54",reserve:"Yok — erken git",order:["Cicchetti tabağı","Aperol Spritz"],tip:"Gondol tamirhanesi karşısında!",mq:"Osteria Al Squero Venice"},
+{name:"Cantine del Vino Schiavi",emoji:"🍷",type:"Akşam",addr:"Fondamenta Nani 992",phone:"+39 041 523 0034",hours:"Pzt–Cum 08:30–20:30 (PAZ KAPALI)",price:"€8–15/kişi",family:"~€24–45",reserve:"Yok",order:["Salmon-mascarpone cicchetti €1.60!","Prosecco"],tip:"€1.60 cicchetti efsane!",mq:"Cantine del Vino Schiavi Venice"}],
+foods:[{name:"Risotto Nero (mürekkepli)",emoji:"🦑",price:"€16–22",where:"Trattoria alla Madonna",mq:"Trattoria alla Madonna Venice"},{name:"Fritto Misto",emoji:"🍤",price:"€18–26",where:"Trattorialar",mq:"fritto misto Venice"},{name:"Tiramisù (orijinal!)",emoji:"🍮",price:"€6–9",where:"Alle Testiere",mq:"Alle Testiere Venice"}],
+snacks:[{name:"Cicchetti (€1.60!)",emoji:"🥪",price:"€1–3",where:"Cantine Schiavi bacaro",mq:"bacaro cicchetti Venice"},{name:"Baicoli bisküvisi",emoji:"🍪",price:"€4–6",where:"Şehir dükkanları",mq:"baicoli Venice"},{name:"Sgroppino",emoji:"🍹",price:"€6–9",where:"Kanal barları",mq:"sgroppino Venice"},{name:"Bussolà (Burano)",emoji:"🍩",price:"€5–8",where:"Burano adası",mq:"bussolà Burano Venice"}],
+attractions:[{name:"San Marco Bazilika",emoji:"⛪",price:"Ücretsiz",tip:"Sabah 09:30.",mq:"St Mark Basilica Venice"},{name:"Doge Sarayı Gizli Rotalar",emoji:"👑",price:"€35/kişi",tip:"3 HAFTA ÖNCE! palazzoducale.visitmuve.it",mq:"Doge Palace Venice"},{name:"Rialto Köprüsü",emoji:"🌉",price:"Ücretsiz",tip:"Gün batımında.",mq:"Rialto Bridge Venice"},{name:"Murano — Cam Üfleme",emoji:"🫧",price:"Ücretsiz izle",tip:"Çocuklar bayılır!",mq:"Murano Island Venice"}],
+activities:[{name:"Gondol Turu",emoji:"🚣",price:"€80–90/tekne",tip:"Sabah kalabalık yok.",mq:"gondola ride Venice"},{name:"Vaporetto (su otobüsü)",emoji:"⛴️",price:"24s €25",tip:"Hat 1: Grand Canal.",mq:"Vaporetto Venice"}]}
+];
+
+const TRANSPORT=[
+{from:"Bremen",to:"Liège",f1:"🇩🇪",f2:"🇧🇪",type:"🚆 ICE",dur:"~3.5 saat",pp:"€35–60",aile:"~€105–180",book:"omio.com / bahn.de",mq:"Liège Belgium train"},
+{from:"Liège",to:"Paris",f1:"🇧🇪",f2:"🇫🇷",type:"🚄 Thalys",dur:"~2 saat",pp:"€40–80",aile:"~€120–240",book:"thalys.com",mq:"Gare du Nord Paris"},
+{from:"Paris",to:"İnterlaken",f1:"🇫🇷",f2:"🇨🇭",type:"🚄 TGV+IC",dur:"~4 saat",pp:"€60–100",aile:"~€180–300",book:"sbb.ch / omio.com",mq:"Interlaken Ost"},
+{from:"İnterlaken",to:"Milano",f1:"🇨🇭",f2:"🇮🇹",type:"🚆 EC",dur:"~3.5 saat",pp:"€40–70",aile:"~€120–210",book:"trenitalia.com",mq:"Milano Centrale"},
+{from:"Milano",to:"Venedik",f1:"🇮🇹",f2:"🇮🇹",type:"🚄 Frecciarossa",dur:"~2.5 saat",pp:"€20–50",aile:"~€60–150",book:"trenitalia.com",mq:"Venezia Santa Lucia"},
+{from:"Venedik",to:"İstanbul",f1:"🇮🇹",f2:"🇹🇷",type:"✈️ Uçuş",dur:"~2.5 saat",pp:"€50–150",aile:"~€150–450",book:"ryanair.com / wizzair.com",mq:"Venice Marco Polo Airport"}
+];
+
+const TICKETS=[
+{item:"Son Akşam Yemeği (Milano)",when:"HEMEN — 3–4 AY!",color:"#ff3333",mq:"Santa Maria delle Grazie Milano"},
+{item:"Venedik → İstanbul ✈️",when:"HEMEN — Bitiyor!",color:"#ff3333",mq:"Venice Marco Polo Airport"},
+{item:"Eyfel Kulesi 🗼",when:"Mayıs başı",color:"#ff6600",mq:"Eiffel Tower Paris"},
+{item:"Louvre 🏛️",when:"Mayıs başı",color:"#ff6600",mq:"Louvre Museum Paris"},
+{item:"Versailles 👑",when:"Mayıs sonu",color:"#ff9900",mq:"Palace of Versailles"},
+{item:"Jungfraujoch 🏔️",when:"Haziran başı",color:"#ffcc00",mq:"Jungfraujoch train"},
+{item:"Doge Sarayı Gizli Rotalar",when:"Haziran ortası",color:"#ffcc00",mq:"Doge Palace Venice"},
+{item:"Duomo Çatısı (Milano)",when:"Haziran ortası",color:"#ffcc00",mq:"Duomo Milano rooftop"}
+];
+
+// ── STATE ──
+let state={
+  cities:[],
+  progress:load("tp9",{}),
+  photos:load("ph9",{}),
+  customItems:load("ci9",{}),
+  activeTab:"cities",
+  selCity:null,
+  cityTab:"checklist",
+  expRest:null,
+  addMode:null,
+  modalType:null,
+  showConfirm:null,
+};
+
+function initCities(){
+  const cc=load("cc9",[]);
+  const deleted=load("deleted9",[]);
+  const defaults=CITIES0.filter(c=>!deleted.includes(c.id));
+  state.cities=[...defaults,...cc];
+}
+initCities();
+
+// ── HELPERS ──
+const mapsUrl=q=>`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
+const getItems=(cid,t)=>{
+  const city=state.cities.find(c=>c.id===cid);
+  const custom=(state.customItems[cid]&&state.customItems[cid][t])||[];
+  return [...(city?.[t]||[]),...custom.map(i=>({...i,isCustom:true}))];
+};
+const getChecked=(cid,t,i)=>!!state.progress[`${cid}_${t}_${i}`];
+const getPhotos=(cid,t,i)=>state.photos[`${cid}_${t}_${i}`]||[];
+const getCityProg=c=>{
+  let d=0,t=0;
+  ["restaurants","foods","snacks","attractions","activities"].forEach(type=>{
+    const a=getItems(c.id,type);
+    t+=a.length;
+    a.forEach((_,i)=>{if(getChecked(c.id,type,i))d++;});
+  });
+  return{done:d,total:t,pct:t?Math.round(d/t*100):0};
+};
+
+// ── ACTIONS ──
+function toggleCheck(cid,t,i){
+  const k=`${cid}_${t}_${i}`;
+  state.progress={...state.progress,[k]:!state.progress[k]};
+  save("tp9",state.progress);
+  render();
+}
+function deleteCity(id){
+  state.cities=state.cities.filter(c=>c.id!==id);
+  save("cc9",state.cities.filter(c=>c.isCustom));
+  const del=[...load("deleted9",[]),id];
+  save("deleted9",del);
+  if(state.selCity===id)state.selCity=null;
+  render();
+}
+function addCustomItem(cid,t,item){
+  const prev=state.customItems[cid]||{};
+  state.customItems={...state.customItems,[cid]:{...prev,[t]:[...(prev[t]||[]),item]}};
+  save("ci9",state.customItems);
+  render();
+}
+function deleteCustomItem(cid,t,gi){
+  const city=state.cities.find(c=>c.id===cid);
+  const bl=(city?.[t]||[]).length;
+  const ci2=gi-bl;
+  if(ci2<0)return;
+  const prev=state.customItems[cid]||{};
+  state.customItems={...state.customItems,[cid]:{...prev,[t]:(prev[t]||[]).filter((_,i)=>i!==ci2)}};
+  save("ci9",state.customItems);
+  render();
+}
+
+// ── IMAGE RESIZE ──
+async function resizeImg(file){
+  return new Promise(res=>{
+    const rd=new FileReader();
+    rd.onload=e=>{
+      const img=new Image();
+      img.onload=()=>{
+        const r=Math.min(800/img.width,800/img.height,1);
+        const c=document.createElement("canvas");
+        c.width=img.width*r;c.height=img.height*r;
+        c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+        res(c.toDataURL("image/jpeg",0.72));
+      };
+      img.src=e.target.result;
+    };
+    rd.readAsDataURL(file);
+  });
+}
+function addPhoto(cid,t,i,b64){
+  const k=`${cid}_${t}_${i}`;
+  state.photos={...state.photos,[k]:[...(state.photos[k]||[]),b64]};
+  save("ph9",state.photos);
+  render();
+}
+function deletePhoto(cid,t,i,pi){
+  const k=`${cid}_${t}_${i}`;
+  state.photos={...state.photos,[k]:(state.photos[k]||[]).filter((_,j)=>j!==pi)};
+  save("ph9",state.photos);
+  render();
+}
+
+// ── HTML BUILDERS ──
+function h(tag,attrs,children){
+  const el=document.createElement(tag);
+  if(attrs)Object.entries(attrs).forEach(([k,v])=>{
+    if(k==="style"&&typeof v==="object")Object.assign(el.style,v);
+    else if(k.startsWith("on"))el[k.toLowerCase()]=v;
+    else if(k==="className")el.className=v;
+    else el.setAttribute(k,v);
+  });
+  if(children){
+    (Array.isArray(children)?children:[children]).forEach(child=>{
+      if(child==null||child===false)return;
+      el.appendChild(typeof child==="string"?document.createTextNode(child):child);
+    });
+  }
+  return el;
+}
+const div=(a,c)=>h("div",a,c);
+const btn=(a,c)=>h("button",a,c);
+const span=(a,c)=>h("span",a,c);
+const a=(at,c)=>h("a",at,c);
+const inp=(at)=>h("input",at);
+
+function mapBtn(q,label,accent,small){
+  return a({href:mapsUrl(q),target:"_blank",style:{
+    display:"inline-flex",alignItems:"center",gap:4,
+    background:accent+"18",border:`1px solid ${accent}44`,color:accent,
+    borderRadius:7,padding:small?"4px 8px":"7px 11px",
+    fontSize:small?10:12,fontWeight:"bold",flexShrink:0,textDecoration:"none"
+  }},["📍 "+(label||"Konum")]);
+}
+
+function checkBox(checked,accent){
+  return div({style:{
+    width:20,height:20,borderRadius:6,flexShrink:0,
+    border:`2px solid ${checked?accent:"#2a2a2a"}`,
+    background:checked?accent:"transparent",
+    display:"flex",alignItems:"center",justifyContent:"center"
+  }},checked?["✓"]:[]);
+}
+
+// ── PHOTO STRIP ──
+function photoStrip(photos,onAdd,onDel,accent){
+  const wrap=div({style:{marginTop:6}});
+  if(photos.length>0){
+    const grid=div({style:{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:5,marginBottom:7}});
+    photos.forEach((p,i)=>{
+      const cell=div({style:{position:"relative",borderRadius:8,overflow:"hidden",aspectRatio:"1"}});
+      const img=h("img",{src:p,style:{width:"100%",height:"100%",objectFit:"cover"}});
+      const delBtn=btn({style:{position:"absolute",top:3,right:3,background:"rgba(0,0,0,0.75)",border:"none",color:"#fff",borderRadius:4,padding:"2px 5px",cursor:"pointer",fontSize:10},onclick:()=>onDel(i)},"✕");
+      cell.appendChild(img);cell.appendChild(delBtn);
+      grid.appendChild(cell);
+    });
+    wrap.appendChild(grid);
+  }
+  const addBtn=btn({style:{width:"100%",background:accent+"10",border:`1px dashed ${accent}55`,borderRadius:8,padding:"8px",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6,color:accent,fontSize:11},onclick:()=>{
+    const inp2=document.createElement("input");
+    inp2.type="file";inp2.accept="image/*";
+    inp2.onchange=async e=>{const f=e.target.files[0];if(f)onAdd(await resizeImg(f));};
+    inp2.click();
+  }},["📷 Fotoğraf Ekle"]);
+  wrap.appendChild(addBtn);
+  return wrap;
+}
+
+// ── CHECK ITEM ──
+function checkItem({label,sub,checked,onToggle,accent,emoji,photos,onAddPhoto,onDelPhoto,mq,onDelete}){
+  let photoOpen=false;
+  const wrap=div({style:{background:checked?"#081808":"#0f0f0f",borderRadius:10,marginBottom:6,border:`1px solid ${checked?accent+"44":"#181818"}`}});
+  
+  const row=div({style:{display:"flex",alignItems:"flex-start",gap:8,padding:"9px 10px",cursor:"pointer"}});
+  const cb=checkBox(checked,accent);
+  cb.onclick=onToggle;
+  const labelDiv=div({style:{flex:1,minWidth:0}});
+  const labelText=div({style:{fontSize:12,color:checked?"#555":"#ccc",textDecoration:checked?"line-through":"none",lineHeight:1.4}},(emoji?emoji+" ":"")+label);
+  labelDiv.appendChild(labelText);
+  if(sub){const subEl=div({style:{fontSize:9,color:"#333",marginTop:2}},sub);labelDiv.appendChild(subEl);}
+  if(photos&&photos.length>0){const ph=div({style:{fontSize:9,color:accent,marginTop:1}},"📸 "+photos.length);labelDiv.appendChild(ph);}
+  
+  row.appendChild(cb);row.appendChild(labelDiv);
+  if(onDelete){
+    const db=btn({style:{background:"transparent",border:"none",color:"#2a2a2a",cursor:"pointer",padding:"1px 3px"},onclick:e=>{e.stopPropagation();if(confirm("Sil?"))onDelete();}},["🗑"]);
+    row.appendChild(db);
+  }
+  wrap.appendChild(row);
+  
+  const tools=div({style:{display:"flex",gap:4,padding:"0 10px 7px",flexWrap:"wrap"}});
+  if(mq)tools.appendChild(mapBtn(mq,"Konum",accent,true));
+  
+  let photoWrap=null;
+  const camBtn=btn({style:{background:accent+"10",border:`1px solid ${accent}22`,color:accent,borderRadius:6,padding:"3px 6px",fontSize:9,cursor:"pointer",display:"flex",alignItems:"center",gap:2},onclick:()=>{
+    photoOpen=!photoOpen;
+    if(photoOpen&&!photoWrap){
+      photoWrap=div({style:{padding:"0 10px 10px"}});
+      photoWrap.appendChild(photoStrip(photos||[],onAddPhoto,onDelPhoto,accent));
+      wrap.appendChild(photoWrap);
+    } else if(photoWrap){
+      photoWrap.style.display=photoOpen?"block":"none";
+    }
+    camBtn.textContent=photoOpen?"📷 Kapat":"📷 Fotoğraf";
+  }},["📷 Fotoğraf"]);
+  tools.appendChild(camBtn);
+  wrap.appendChild(tools);
+  return wrap;
+}
+
+// ── RENDER RESTAURANT CARD ──
+function restCard(r,cid,i,accent){
+  const checked=getChecked(cid,"restaurants",i);
+  const photos=getPhotos(cid,"restaurants",i);
+  let open=false;
+  
+  const wrap=div({style:{background:checked?"#071207":"#111",borderRadius:10,marginBottom:8,border:`1px solid ${checked?accent+"44":"#1a1a1a"}`}});
+  const header=div({style:{padding:"9px 10px",cursor:"pointer"}});
+  
+  const top=div({style:{display:"flex",alignItems:"flex-start",gap:7}});
+  const cb=checkBox(checked,accent);
+  cb.onclick=e=>{e.stopPropagation();toggleCheck(cid,"restaurants",i);};
+  
+  const info=div({style:{flex:1}});
+  info.appendChild(div({style:{display:"flex",alignItems:"center",gap:4,marginBottom:2}},[span({},r.emoji||"🍽️"),span({style:{fontSize:12,fontWeight:"bold",color:checked?"#444":"#ddd"}},r.name)]));
+  if(r.type)info.appendChild(div({style:{fontSize:9,color:accent+"99"}},r.type));
+  if(r.price)info.appendChild(div({style:{fontSize:9,color:"#333",marginTop:1}},r.price+" · Aile: "+(r.family||"")));
+  
+  const arr=span({style:{color:"#222",fontSize:11}},"▼");
+  top.appendChild(cb);top.appendChild(info);top.appendChild(arr);
+  if(r.isCustom){
+    const db=btn({style:{background:"transparent",border:"none",color:"#222",cursor:"pointer"},onclick:e=>{e.stopPropagation();if(confirm("Sil?"))deleteCustomItem(cid,"restaurants",i);}},["🗑"]);
+    top.appendChild(db);
+  }
+  header.appendChild(top);
+  
+  const detail=div({style:{padding:"0 10px 10px",borderTop:"1px solid #1a1a1a",display:"none"}});
+  [[r.addr,"📍"],[r.phone,"📞"],[r.hours,"🕐"],[r.reserve,"⚠️ Rezervasyon:"],[r.tip&&"💡 "+r.tip,""]].filter(x=>x[0]).forEach(([v,lbl])=>{
+    const row=div({style:{background:"#080808",borderRadius:7,padding:"5px 8px",marginBottom:4,fontSize:10,color:lbl==="⚠️ Rezervasyon:"?accent:"#888"}},(lbl?" "+lbl+" ":"")+v);
+    detail.appendChild(row);
+  });
+  if(r.order&&r.order.length){
+    const od=div({style:{background:"#080808",borderRadius:7,padding:"5px 8px",marginBottom:4}});
+    od.appendChild(div({style:{fontSize:9,color:accent,fontWeight:"bold",marginBottom:3}},"SİPARİŞ:"));
+    r.order.forEach(o=>od.appendChild(div({style:{fontSize:10,color:"#ccc",padding:"2px 0"}},"• "+o)));
+    detail.appendChild(od);
+  }
+  const btns=div({style:{display:"flex",gap:5,marginTop:8,flexWrap:"wrap"}});
+  if(r.mq)btns.appendChild(mapBtn(r.mq,"Haritada",accent,true));
+  const chkBtn=btn({style:{background:checked?"#071507":"#111",border:`1px solid ${checked?accent:"#1e1e1e"}`,color:checked?accent:"#444",borderRadius:7,padding:"7px 10px",cursor:"pointer",fontSize:10,fontWeight:"bold"},onclick:()=>toggleCheck(cid,"restaurants",i)},checked?"✓ Gidildi":"İşaretle");
+  btns.appendChild(chkBtn);
+  detail.appendChild(btns);
+  detail.appendChild(photoStrip(photos,b=>addPhoto(cid,"restaurants",i,b),pi=>deletePhoto(cid,"restaurants",i,pi),accent));
+  
+  header.onclick=()=>{
+    open=!open;
+    detail.style.display=open?"block":"none";
+    arr.textContent=open?"▲":"▼";
+  };
+  wrap.appendChild(header);wrap.appendChild(detail);
+  return wrap;
+}
+
+// ── CITY DETAIL PAGE ──
+function renderCityPage(cid){
+  const city=state.cities.find(c=>c.id===cid);
+  if(!city)return div({},[]);
+  const prog=getCityProg(city);
+  const acc=city.accent;
+  const page=div({style:{minHeight:"100vh",background:"#080808"}});
+
+  // Header
+  const hdr=div({style:{background:city.bg,position:"sticky",top:0,zIndex:10,paddingBottom:8}});
+  const hdrTop=div({style:{display:"flex",alignItems:"center",gap:8,padding:"11px 11px 0"}});
+  const backBtn=btn({style:{background:"rgba(255,255,255,0.2)",border:"none",color:"#fff",borderRadius:13,padding:"5px 9px",cursor:"pointer",fontSize:12},onclick:()=>{state.selCity=null;render();}},"← Geri");
+  const hdrInfo=div({style:{flex:1}});
+  hdrInfo.appendChild(div({style:{fontSize:16,fontWeight:"bold"}},city.flag+" "+city.name));
+  hdrInfo.appendChild(div({style:{fontSize:10,opacity:0.7}},(city.dates||"—")+" · "+city.nights+" gece"));
+  hdrTop.appendChild(backBtn);hdrTop.appendChild(hdrInfo);
+  hdrTop.appendChild(mapBtn(city.name+" "+city.country,"",acc,true));
+  hdr.appendChild(hdrTop);
+
+  // Progress bar
+  const progWrap=div({style:{margin:"6px 11px 0",background:"rgba(0,0,0,0.25)",borderRadius:8,padding:"5px 9px"}});
+  progWrap.appendChild(div({style:{display:"flex",justifyContent:"space-between",marginBottom:3}},[
+    span({style:{fontSize:9,color:"rgba(255,255,255,0.5)"}},"İlerleme"),
+    span({style:{fontSize:10,fontWeight:"bold",color:acc}},prog.done+"/"+prog.total+" · %"+prog.pct)
+  ]));
+  const bar=div({style:{background:"rgba(0,0,0,0.4)",borderRadius:4,height:4}});
+  bar.appendChild(div({style:{background:acc,height:4,borderRadius:4,width:prog.pct+"%",transition:"width 0.4s"}}));
+  progWrap.appendChild(bar);
+  hdr.appendChild(progWrap);
+  hdr.appendChild(div({style:{margin:"4px 11px 0",background:"rgba(255,255,255,0.1)",borderRadius:6,padding:"4px 8px",fontSize:10}},"💱 "+city.currency+" — "+city.currencyTip));
+
+  // Tabs
+  const TABS=["checklist","foods","snacks","restaurants","attractions","activities"];
+  const TLABELS={"checklist":"☑️ Hepsi","foods":"🥘 Yemek","snacks":"🍿 Ara Öğün","restaurants":"🍽️ Restoran","attractions":"🗺️ Geziler","activities":"🎯 Etkinlik"};
+  const tabRow=div({style:{display:"flex",gap:3,padding:"6px 11px 0",overflowX:"auto"}});
+  tabRow.style.cssText+=";scrollbar-width:none;";
+  TABS.forEach(t=>{
+    const tb=btn({style:{flexShrink:0,padding:"4px 8px",border:"none",borderRadius:12,cursor:"pointer",background:state.cityTab===t?acc:"rgba(255,255,255,0.12)",color:state.cityTab===t?"#000":"#bbb",fontSize:10,fontWeight:"bold"},onclick:()=>{state.cityTab=t;render();}},TLABELS[t]);
+    tabRow.appendChild(tb);
+  });
+  hdr.appendChild(tabRow);
+  page.appendChild(hdr);
+
+  // Content
+  const content=div({style:{padding:11,paddingBottom:80}});
+
+  const addItemBtn=(type,label)=>{
+    const b=btn({style:{width:"100%",background:"transparent",border:`1px dashed ${acc}33`,borderRadius:8,padding:"8px",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:4,color:acc,fontSize:10,marginTop:3},onclick:()=>{state.modalType={type,cid:city.id};render();}},["＋ "+label+" Ekle"]);
+    return b;
+  };
+
+  if(state.cityTab==="checklist"){
+    const sections=[
+      {type:"attractions",title:"🗺️ GEZİLECEK"},
+      {type:"activities",title:"🎯 ETKİNLİKLER"},
+      {type:"restaurants",title:"🍽️ RESTORANLAR"},
+      {type:"foods",title:"🥘 YEMEKLER"},
+      {type:"snacks",title:"🍿 ARA ÖĞÜNLER"},
+    ];
+    sections.forEach(s=>{
+      const items=getItems(city.id,s.type);
+      if(!items.length)return;
+      const sec=div({style:{marginBottom:13}});
+      sec.appendChild(div({style:{fontSize:9,color:acc,fontWeight:"bold",marginBottom:5,letterSpacing:1}},s.title));
+      items.forEach((item,i)=>{
+        sec.appendChild(checkItem({
+          label:item.name,
+          sub:[item.price,item.where||item.type||item.addr].filter(Boolean).join(" — "),
+          checked:getChecked(city.id,s.type,i),
+          onToggle:()=>toggleCheck(city.id,s.type,i),
+          accent:acc,emoji:item.emoji,
+          photos:getPhotos(city.id,s.type,i),
+          onAddPhoto:b=>addPhoto(city.id,s.type,i,b),
+          onDelPhoto:pi=>deletePhoto(city.id,s.type,i,pi),
+          mq:item.mq||item.addr,
+          onDelete:item.isCustom?()=>deleteCustomItem(city.id,s.type,i):null
+        }));
+      });
+      content.appendChild(sec);
+    });
+  }
+
+  if(state.cityTab==="restaurants"){
+    getItems(city.id,"restaurants").forEach((r,i)=>content.appendChild(restCard(r,city.id,i,acc)));
+    content.appendChild(addItemBtn("restaurants","Restoran"));
+  }
+
+  if(state.cityTab==="foods"){
+    getItems(city.id,"foods").forEach((item,i)=>content.appendChild(checkItem({
+      label:item.name,sub:[item.price,item.where].filter(Boolean).join(" — "),
+      checked:getChecked(city.id,"foods",i),onToggle:()=>toggleCheck(city.id,"foods",i),
+      accent:acc,emoji:item.emoji,photos:getPhotos(city.id,"foods",i),
+      onAddPhoto:b=>addPhoto(city.id,"foods",i,b),onDelPhoto:pi=>deletePhoto(city.id,"foods",i,pi),
+      mq:item.mq,onDelete:item.isCustom?()=>deleteCustomItem(city.id,"foods",i):null
+    })));
+    content.appendChild(addItemBtn("foods","Yemek"));
+  }
+
+  if(state.cityTab==="snacks"){
+    getItems(city.id,"snacks").forEach((item,i)=>content.appendChild(checkItem({
+      label:item.name,sub:[item.price,item.where].filter(Boolean).join(" — "),
+      checked:getChecked(city.id,"snacks",i),onToggle:()=>toggleCheck(city.id,"snacks",i),
+      accent:acc,emoji:item.emoji,photos:getPhotos(city.id,"snacks",i),
+      onAddPhoto:b=>addPhoto(city.id,"snacks",i,b),onDelPhoto:pi=>deletePhoto(city.id,"snacks",i,pi),
+      mq:item.mq,onDelete:item.isCustom?()=>deleteCustomItem(city.id,"snacks",i):null
+    })));
+    content.appendChild(addItemBtn("snacks","Ara Öğün"));
+  }
+
+  if(state.cityTab==="attractions"||state.cityTab==="activities"){
+    const type=state.cityTab;
+    getItems(city.id,type).forEach((item,i)=>{
+      const card=div({style:{background:"#0d0d0d",borderRadius:11,padding:11,marginBottom:7,border:"1px solid #181818"}});
+      const top=div({style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:5}});
+      const left=div({style:{flex:1}});
+      left.appendChild(div({style:{fontSize:14,marginBottom:2}},item.emoji||"🗺️"));
+      left.appendChild(div({style:{fontWeight:"bold",fontSize:12,color:"#ddd"}},item.name));
+      left.appendChild(div({style:{fontSize:9,color:acc,marginTop:1,fontWeight:"bold"}},item.price||""));
+      const right=div({style:{display:"flex",gap:4,alignItems:"center"}});
+      if(item.isCustom){
+        right.appendChild(btn({style:{background:"transparent",border:"none",color:"#2a2a2a",cursor:"pointer"},onclick:()=>{if(confirm("Sil?"))deleteCustomItem(city.id,type,i);}},["🗑"]));
+      }
+      const cb2=div({style:{width:23,height:23,borderRadius:6,border:`2px solid ${getChecked(city.id,type,i)?acc:"#222"}`,background:getChecked(city.id,type,i)?acc:"transparent",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"},onclick:()=>toggleCheck(city.id,type,i)});
+      if(getChecked(city.id,type,i))cb2.appendChild(span({style:{color:"#000",fontWeight:"bold",fontSize:10}},"✓"));
+      right.appendChild(cb2);
+      top.appendChild(left);top.appendChild(right);
+      card.appendChild(top);
+      if(item.tip)card.appendChild(div({style:{fontSize:10,color:"#333",lineHeight:1.5,marginBottom:7,fontStyle:"italic"}},"💡 "+item.tip));
+      if(item.mq)card.appendChild(mapBtn(item.mq,"Konuma Git",acc,true));
+      card.appendChild(photoStrip(getPhotos(city.id,type,i),b=>addPhoto(city.id,type,i,b),pi=>deletePhoto(city.id,type,i,pi),acc));
+      content.appendChild(card);
+    });
+    content.appendChild(addItemBtn(type,type==="attractions"?"Gezilecek Yer":"Etkinlik"));
+  }
+
+  page.appendChild(content);
+  return page;
+}
+
+// ── ADD ITEM MODAL ──
+const MODAL_FIELDS={
+  foods:[{k:"emoji",l:"Emoji",opts:["🍕","🍝","🥩","🧇","🥐","🍦","🍫","🥨","🧀","🥗","🍜","🍷","☕","🍵","🍹","🍒","🍊","🍬","🌭","🦑","🍤","🥣","🧁","🥖","🍮"]},{k:"name",l:"Yemek Adı",req:true,ph:"Pizza"},{k:"price",l:"Fiyat",ph:"€8–12"},{k:"where",l:"Nerede",ph:"Kafeler"},{k:"mq",l:"Konum",ph:"pizza"}],
+  snacks:[{k:"emoji",l:"Emoji",opts:["🍿","🍪","🍩","🧇","🥐","🍫","🍬","🍭","🥤","🧃"]},{k:"name",l:"Adı",req:true,ph:"Churros"},{k:"price",l:"Fiyat",ph:"€2–4"},{k:"where",l:"Nerede",ph:"Sokak"},{k:"mq",l:"Konum",ph:"churros"}],
+  restaurants:[{k:"emoji",l:"Emoji",opts:["🍽️","🥩","🍝","🍕","🥘","🍺","🍷","☕","🌟","🧇"]},{k:"name",l:"Restoran Adı",req:true,ph:"Trattoria"},{k:"type",l:"Öğün",ph:"Akşam"},{k:"addr",l:"Adres",ph:"Via Roma 12"},{k:"phone",l:"Tel",ph:"+39..."},{k:"hours",l:"Saatler",ph:"12:00–22:00"},{k:"price",l:"Fiyat/kişi",ph:"€20–30/kişi"},{k:"family",l:"Aile",ph:"~€60–90"},{k:"reserve",l:"Rezervasyon",ph:"1 hafta önce"},{k:"tip",l:"İpucu",ph:""},{k:"mq",l:"Konum",ph:"restaurant"}],
+  attractions:[{k:"emoji",l:"Emoji",opts:["🏛️","⛪","🏰","🎨","🌊","🏔️","🗼","👑","🏪","🌳","🎆","🏅","🚉","🌉","🏘️","🌍","⛩️"]},{k:"name",l:"Yer Adı",req:true,ph:"Colosseum"},{k:"price",l:"Giriş",ph:"€18"},{k:"tip",l:"İpucu",ph:"Sabah erken"},{k:"mq",l:"Konum",ph:"Colosseum Rome"}],
+  activities:[{k:"emoji",l:"Emoji",opts:["🎯","🚣","🚲","🎭","🎆","🍷","🤿","🧗","🚡","🎬","⛵","🏊","🪂"]},{k:"name",l:"Etkinlik",req:true,ph:"Flamenco"},{k:"price",l:"Fiyat",ph:"€25/kişi"},{k:"tip",l:"İpucu",ph:""},{k:"mq",l:"Konum",ph:"flamenco"}],
+};
+
+function renderModal(type,cid,accent){
+  const fields=MODAL_FIELDS[type];
+  const formData={emoji:fields[0]?.opts?.[0]||""};
+  const overlay=div({style:{position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",zIndex:300,display:"flex",alignItems:"flex-end",justifyContent:"center"}});
+  const sheet=div({style:{background:"#111",borderRadius:"20px 20px 0 0",padding:15,width:"100%",maxWidth:480,maxHeight:"88vh",overflowY:"auto"}});
+  
+  const hdr=div({style:{display:"flex",justifyContent:"space-between",marginBottom:13}});
+  hdr.appendChild(div({style:{fontSize:14,fontWeight:"bold",color:accent}},type==="foods"?"🥘 Yemek Ekle":type==="snacks"?"🍿 Ara Öğün Ekle":type==="restaurants"?"🍽️ Restoran Ekle":type==="attractions"?"🗺️ Yer Ekle":"🎯 Etkinlik Ekle"));
+  hdr.appendChild(btn({style:{background:"#1e1e1e",border:"none",color:"#aaa",borderRadius:7,padding:"4px 10px",cursor:"pointer"},onclick:()=>{state.modalType=null;render();}},"✕"));
+  sheet.appendChild(hdr);
+
+  fields.forEach(f=>{
+    const wrap=div({style:{marginBottom:9}});
+    wrap.appendChild(div({style:{fontSize:10,color:"#444",marginBottom:3}},f.l+(f.req?" *":"")));
+    if(f.opts){
+      const grid=div({style:{display:"flex",flexWrap:"wrap",gap:4}});
+      f.opts.forEach(o=>{
+        const ob=btn({style:{fontSize:19,background:formData[f.k]===o?"#2a2a2a":"transparent",border:formData[f.k]===o?`2px solid ${accent}`:"2px solid transparent",borderRadius:5,padding:"3px 5px",cursor:"pointer"},onclick:()=>{
+          formData[f.k]=o;
+          grid.querySelectorAll("button").forEach((b,bi)=>{b.style.background=f.opts[bi]===o?"#2a2a2a":"transparent";b.style.border=f.opts[bi]===o?`2px solid ${accent}`:"2px solid transparent";});
+        }},o);
+        grid.appendChild(ob);
+      });
+      wrap.appendChild(grid);
+    } else {
+      const input=inp({placeholder:f.ph||"",style:{width:"100%",background:"#1a1a1a",border:"1px solid #222",borderRadius:7,padding:"7px 9px",color:"#fff",fontSize:12,boxSizing:"border-box"}});
+      input.oninput=e=>formData[f.k]=e.target.value;
+      wrap.appendChild(input);
+    }
+    sheet.appendChild(wrap);
+  });
+
+  sheet.appendChild(btn({style:{width:"100%",background:`linear-gradient(135deg,${accent},${accent}99)`,border:"none",color:"#000",borderRadius:9,padding:11,fontSize:13,fontWeight:"bold",cursor:"pointer",marginTop:3},onclick:()=>{
+    const reqFields=fields.filter(f=>f.req);
+    if(reqFields.some(f=>!formData[f.k]?.trim())){alert("Zorunlu alanları doldurun!");return;}
+    const item={};
+    fields.forEach(f=>item[f.k]=formData[f.k]||"");
+    addCustomItem(cid,type,item);
+    state.modalType=null;
+    render();
+  }},"✓ Kaydet"));
+
+  overlay.appendChild(sheet);
+  overlay.onclick=e=>{if(e.target===overlay){state.modalType=null;render();}};
+  return overlay;
+}
+
+// ── MAIN PAGE ──
+function renderMainPage(){
+  const page=div({style:{minHeight:"100vh",background:"#080808"}});
+
+  // Header
+  const hdr=div({style:{background:"linear-gradient(135deg,#1a0533,#0d1f3c,#0a1f10)",padding:"18px 13px 13px",borderBottom:"1px solid #0f0f0f"}});
+  hdr.appendChild(div({style:{fontSize:10,letterSpacing:4,color:"#1a1a2a",marginBottom:3}},"AİLE SEYAHAT REHBERİ"));
+  hdr.appendChild(div({style:{fontSize:20,fontWeight:"bold"}},"✈️ Avrupa Turu 2026"));
+  hdr.appendChild(div({style:{fontSize:11,color:"#f5a623",marginTop:3}},"5 – 22 Temmuz · "+state.cities.length+" Şehir · 3 Kişi"));
+  
+  // Global progress
+  let td=0,tt=0;
+  state.cities.forEach(c=>{const p=getCityProg(c);td+=p.done;tt+=p.total;});
+  const gp=tt?Math.round(td/tt*100):0;
+  const gpWrap=div({style:{marginTop:7,background:"rgba(255,255,255,0.04)",borderRadius:8,padding:"6px 9px"}});
+  gpWrap.appendChild(div({style:{display:"flex",justifyContent:"space-between",marginBottom:3}},[
+    span({style:{fontSize:10,color:"#2a2a2a"}},"Toplam İlerleme"),
+    span({style:{fontSize:10,fontWeight:"bold",color:"#f5a623"}},td+"/"+tt+" · %"+gp)
+  ]));
+  const gpBar=div({style:{background:"rgba(0,0,0,0.5)",borderRadius:4,height:5}});
+  gpBar.appendChild(div({style:{background:"linear-gradient(90deg,#f5a623,#e74c8b)",height:5,borderRadius:4,width:gp+"%",transition:"width 0.4s"}}));
+  gpWrap.appendChild(gpBar);
+  hdr.appendChild(gpWrap);
+  page.appendChild(hdr);
+
+  // Tab bar
+  const tabBar=div({style:{display:"flex",background:"#080808",borderBottom:"1px solid #0f0f0f",position:"sticky",top:0,zIndex:10}});
+  ["cities","transport","tickets"].forEach(t=>{
+    const tb=btn({style:{flex:1,padding:"11px 3px",border:"none",borderBottom:state.activeTab===t?"3px solid #f5a623":"3px solid transparent",background:"transparent",color:state.activeTab===t?"#f5a623":"#2a2a2a",fontSize:10,cursor:"pointer",fontWeight:"bold"},onclick:()=>{state.activeTab=t;render();}},
+      t==="cities"?"🏙️ Şehirler":t==="transport"?"🚄 Ulaşım":"🎟️ Biletler");
+    tabBar.appendChild(tb);
+  });
+  page.appendChild(tabBar);
+
+  const content=div({style:{padding:11,paddingBottom:80}});
+
+  // CITIES TAB
+  if(state.activeTab==="cities"){
+    state.cities.forEach(c=>{
+      const prog=getCityProg(c);
+      const card=div({style:{background:c.bg,borderRadius:13,marginBottom:9,overflow:"hidden",border:"1px solid rgba(255,255,255,0.05)",position:"relative",cursor:"pointer"}});
+      
+      // Delete button bottom-right
+      const delBtn=btn({style:{position:"absolute",bottom:8,right:8,zIndex:5,background:"rgba(0,0,0,0.7)",border:"1px solid rgba(255,80,80,0.5)",color:"#ff6666",borderRadius:7,padding:"4px 8px",cursor:"pointer",fontSize:13,fontWeight:"bold",lineHeight:1},
+        onclick:e=>{e.stopPropagation();if(confirm('"'+c.name+'" şehrini listeden kaldırmak istiyor musunuz?'))deleteCity(c.id);}
+      },"✕");
+      card.appendChild(delBtn);
+
+      const inner=div({style:{padding:"12px 13px"},onclick:()=>{state.selCity=c.id;state.cityTab="checklist";state.expRest=null;render();}});
+      const top=div({style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:7}});
+      const left=div({style:{display:"flex",alignItems:"center",gap:6}},[
+        span({style:{fontSize:22}},c.flag),
+        div({},[div({style:{fontSize:14,fontWeight:"bold"}},c.name),div({style:{fontSize:9,opacity:0.6,marginTop:1}},c.country)])
+      ]);
+      const right=div({style:{textAlign:"right",paddingRight:24}},[
+        div({style:{fontSize:10,color:c.accent,fontWeight:"bold"}},c.dates||"—"),
+        div({style:{fontSize:9,opacity:0.5,marginTop:1}},c.nights+" gece")
+      ]);
+      top.appendChild(left);top.appendChild(right);
+      inner.appendChild(top);
+
+      const progWrap=div({style:{background:"rgba(0,0,0,0.3)",borderRadius:6,padding:"5px 8px"}});
+      progWrap.appendChild(div({style:{display:"flex",justifyContent:"space-between",marginBottom:3}},[
+        span({style:{fontSize:8,color:"rgba(255,255,255,0.4)"}},"İlerleme"),
+        span({style:{fontSize:9,fontWeight:"bold",color:c.accent}},prog.done+"/"+prog.total+" · %"+prog.pct)
+      ]));
+      const bar=div({style:{background:"rgba(0,0,0,0.4)",borderRadius:3,height:3}});
+      bar.appendChild(div({style:{background:c.accent,height:3,borderRadius:3,width:prog.pct+"%"}}));
+      progWrap.appendChild(bar);
+      inner.appendChild(progWrap);
+
+      const badges=div({style:{display:"flex",gap:4,marginTop:6,flexWrap:"wrap"}});
+      ["restaurants","foods","snacks","attractions","activities"].forEach(t=>{
+        const items=getItems(c.id,t);
+        if(!items.length)return;
+        const done=items.filter((_,i)=>getChecked(c.id,t,i)).length;
+        badges.appendChild(div({style:{background:"rgba(0,0,0,0.3)",borderRadius:5,padding:"2px 6px",fontSize:8,color:done===items.length?c.accent:"rgba(255,255,255,0.4)"}},
+          done+"/"+items.length+" "+(t==="restaurants"?"🍽️":t==="foods"?"🥘":t==="snacks"?"🍿":t==="attractions"?"🗺️":"🎯")));
+      });
+      inner.appendChild(badges);
+      card.appendChild(inner);
+      content.appendChild(card);
+    });
+
+    // Add buttons
+    const addRow=div({style:{display:"flex",gap:6,marginTop:4}});
+    addRow.appendChild(btn({style:{flex:1,background:"#0d0d0d",border:"1px dashed #1e1e1e",color:"#666",borderRadius:10,padding:"12px 8px",cursor:"pointer",fontSize:10,fontWeight:"bold"},
+      onclick:()=>{state.addMode="manual";render();}},"✏️ Şehir Ekle"));
+    content.appendChild(addRow);
+  }
+
+  // TRANSPORT TAB
+  if(state.activeTab==="transport"){
+    content.appendChild(div({style:{fontSize:9,color:"#334",marginBottom:10}},"💡 Hepsi 3 kişi için. Erken alın!"));
+    TRANSPORT.forEach(t=>{
+      const card=div({style:{background:"#0d0d0d",borderRadius:11,marginBottom:7,padding:"11px 12px",border:"1px solid #181818",borderLeft:"3px solid #f5a623"}});
+      card.appendChild(div({style:{fontWeight:"bold",fontSize:12,marginBottom:5}},t.f1+" "+t.from+" → "+t.f2+" "+t.to));
+      const badges2=div({style:{display:"flex",gap:4,marginBottom:6}});
+      badges2.appendChild(div({style:{background:"#141414",borderRadius:10,padding:"2px 7px",fontSize:10}},t.type));
+      badges2.appendChild(div({style:{background:"#141414",borderRadius:10,padding:"2px 7px",fontSize:10}},"⏱️ "+t.dur));
+      card.appendChild(badges2);
+      const prices=div({style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:5,marginBottom:5}});
+      const p1=div({style:{background:"#080808",borderRadius:7,padding:"6px 7px"}});
+      p1.appendChild(div({style:{color:"#222",fontSize:9}},"Kişi Başı"));
+      p1.appendChild(div({style:{color:"#f5a623",fontWeight:"bold",fontSize:11,marginTop:1}},t.pp));
+      const p2=div({style:{background:"#080808",borderRadius:7,padding:"6px 7px"}});
+      p2.appendChild(div({style:{color:"#222",fontSize:9}},"3 Kişi"));
+      p2.appendChild(div({style:{color:"#ffd700",fontWeight:"bold",fontSize:11,marginTop:1}},t.aile));
+      prices.appendChild(p1);prices.appendChild(p2);
+      card.appendChild(prices);
+      card.appendChild(div({style:{background:"#080808",borderRadius:7,padding:"5px 7px",marginBottom:5,fontSize:10,color:"#4fc3f7"}},t.book));
+      card.appendChild(mapBtn(t.mq,"İstasyona Git","#4fc3f7",true));
+      content.appendChild(card);
+    });
+  }
+
+  // TICKETS TAB
+  if(state.activeTab==="tickets"){
+    content.appendChild(div({style:{background:"#110404",borderRadius:9,padding:9,marginBottom:9,borderLeft:"3px solid #ff4444"}},[
+      div({style:{color:"#ff4444",fontWeight:"bold",fontSize:11,marginBottom:1}},"⚠️ Kritik Bilet Takvimi"),
+      div({style:{color:"#2a2a2a",fontSize:10}},"Temmuz pik sezon — erken al!")
+    ]));
+    TICKETS.forEach(t=>{
+      const card=div({style:{background:"#0a0a0a",borderRadius:8,padding:"8px 10px",marginBottom:5,display:"flex",justifyContent:"space-between",alignItems:"center",borderLeft:`3px solid ${t.color}`}});
+      const left=div({style:{flex:1}});
+      left.appendChild(div({style:{fontSize:11,color:"#aaa",fontWeight:"bold",marginBottom:3}},t.item));
+      left.appendChild(mapBtn(t.mq,"Konum",t.color,true));
+      card.appendChild(left);
+      card.appendChild(div({style:{background:t.color+"15",color:t.color,borderRadius:6,padding:"2px 6px",fontSize:9,fontWeight:"bold",marginLeft:5,textAlign:"right",maxWidth:100,lineHeight:1.4}},t.when));
+      content.appendChild(card);
+    });
+  }
+
+  page.appendChild(content);
+  return page;
+}
+
+// ── ADD CITY MANUAL ──
+function renderAddCity(){
+  const formData={name:"",country:"",flag:"🏙️",dates:"",nights:2,currency:"€ Euro",currencyTip:"",accent:"#f5a623"};
+  const flags=["🏙️","🇩🇪","🇫🇷","🇮🇹","🇪🇸","🇵🇹","🇬🇷","🇳🇱","🇦🇹","🇨🇭","🇧🇪","🇬🇧","🇵🇱","🇨🇿","🇭🇺","🇭🇷","🇹🇷","🌍","🇸🇪","🇩🇰","🇷🇴","🇷🇸"];
+  const colors=["#f5a623","#e74c8b","#4fc3f7","#81c784","#ff7043","#ab47bc","#26c6da","#ffca28","#ef5350","#66bb6a"];
+
+  const overlay=div({style:{position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",zIndex:300,display:"flex",alignItems:"flex-end",justifyContent:"center"}});
+  const sheet=div({style:{background:"#111",borderRadius:"20px 20px 0 0",padding:15,width:"100%",maxWidth:480,maxHeight:"90vh",overflowY:"auto"}});
+  
+  const hd=div({style:{display:"flex",justifyContent:"space-between",marginBottom:13}});
+  hd.appendChild(div({style:{fontSize:14,fontWeight:"bold",color:"#f5a623"}},"✏️ Şehir Ekle"));
+  hd.appendChild(btn({style:{background:"#1e1e1e",border:"none",color:"#aaa",borderRadius:7,padding:"4px 10px",cursor:"pointer"},onclick:()=>{state.addMode=null;render();}},"✕"));
+  sheet.appendChild(hd);
+
+  [["Şehir Adı *","name","Barcelona",true],["Ülke","country","İspanya"],["Tarihler","dates","23–25 Tem"],["Para Birimi","currency","€ Euro"],["Para Notu","currencyTip","Nakit tercih edilir"],["Kaç Gece","nights","2"]].forEach(([l,k,ph,req])=>{
+    const w=div({style:{marginBottom:9}});
+    w.appendChild(div({style:{fontSize:10,color:"#444",marginBottom:3}},l));
+    const i=inp({placeholder:ph,value:String(formData[k]),style:{width:"100%",background:"#1a1a1a",border:"1px solid #222",borderRadius:7,padding:"7px 9px",color:"#fff",fontSize:12,boxSizing:"border-box"}});
+    i.oninput=e=>formData[k]=e.target.value;
+    w.appendChild(i);
+    sheet.appendChild(w);
+  });
+
+  // Flag picker
+  sheet.appendChild(div({style:{fontSize:10,color:"#444",marginBottom:5,marginTop:4}},"Bayrak"));
+  const flagGrid=div({style:{display:"flex",flexWrap:"wrap",gap:4,marginBottom:12,maxHeight:80,overflowY:"auto"}});
+  flags.forEach(f=>{
+    const fb=btn({style:{fontSize:18,background:formData.flag===f?"#222":"transparent",border:formData.flag===f?`2px solid ${formData.accent}`:"2px solid transparent",borderRadius:5,padding:"2px 4px",cursor:"pointer"},onclick:()=>{
+      formData.flag=f;
+      flagGrid.querySelectorAll("button").forEach((b,bi)=>{b.style.background=flags[bi]===f?"#222":"transparent";b.style.border=flags[bi]===f?`2px solid ${formData.accent}`:"2px solid transparent";});
+    }},f);
+    flagGrid.appendChild(fb);
+  });
+  sheet.appendChild(flagGrid);
+
+  // Color picker
+  sheet.appendChild(div({style:{fontSize:10,color:"#444",marginBottom:5}},"Renk"));
+  const colorGrid=div({style:{display:"flex",gap:5,flexWrap:"wrap",marginBottom:13}});
+  colors.forEach(c=>{
+    const cb2=div({style:{width:23,height:23,borderRadius:"50%",background:c,cursor:"pointer",border:formData.accent===c?"3px solid #fff":"3px solid transparent"},onclick:()=>{
+      formData.accent=c;
+      colorGrid.querySelectorAll("div").forEach((d,di)=>{d.style.border=colors[di]===c?"3px solid #fff":"3px solid transparent";});
+    }});
+    colorGrid.appendChild(cb2);
+  });
+  sheet.appendChild(colorGrid);
+
+  sheet.appendChild(btn({style:{width:"100%",background:"linear-gradient(135deg,#f5a623,#f5a62388)",border:"none",color:"#000",borderRadius:9,padding:11,fontSize:13,fontWeight:"bold",cursor:"pointer"},onclick:()=>{
+    if(!formData.name.trim()){alert("Şehir adı zorunlu!");return;}
+    const GRADS=["linear-gradient(135deg,#1a0d2e,#2d1b5c)","linear-gradient(135deg,#0d1f3c,#1a5276)","linear-gradient(135deg,#1b4332,#2d6a4f)","linear-gradient(135deg,#4a1040,#8e2469)","linear-gradient(135deg,#4a2000,#9b4d0a)"];
+    const newCity={id:"m_"+Date.now(),name:formData.name,flag:formData.flag,country:formData.country,dates:formData.dates,nights:Number(formData.nights)||2,currency:formData.currency,currencyTip:formData.currencyTip,accent:formData.accent,bg:GRADS[Math.floor(Math.random()*GRADS.length)],isCustom:true,restaurants:[],foods:[],snacks:[],attractions:[],activities:[]};
+    state.cities.push(newCity);
+    save("cc9",state.cities.filter(c=>c.isCustom));
+    state.addMode=null;
+    render();
+  }},formData.flag+" "+formData.name+" Ekle"));
+
+  overlay.appendChild(sheet);
+  return overlay;
+}
+
+// ── MAIN RENDER ──
+function render(){
+  const app=document.getElementById("app");
+  app.innerHTML="";
+
+  let main;
+  if(state.selCity){
+    main=renderCityPage(state.selCity);
+  } else if(state.addMode==="manual"){
+    main=renderMainPage();
+    app.appendChild(main);
+    app.appendChild(renderAddCity());
+    if(state.modalType){
+      const city=state.cities.find(c=>c.id===state.modalType.cid);
+      app.appendChild(renderModal(state.modalType.type,state.modalType.cid,city?.accent||"#f5a623"));
+    }
+    return;
+  } else {
+    main=renderMainPage();
+  }
+
+  app.appendChild(main);
+
+  if(state.modalType){
+    const city=state.cities.find(c=>c.id===state.modalType.cid);
+    app.appendChild(renderModal(state.modalType.type,state.modalType.cid,city?.accent||"#f5a623"));
+  }
+}
+
+render();
+
+// ── SERVICE WORKER (iOS + Android) ──
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js', {scope: './'})
+      .then(reg => { reg.update(); })
+      .catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
