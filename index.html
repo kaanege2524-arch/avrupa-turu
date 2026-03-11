@@ -1,21 +1,671 @@
 <!DOCTYPE html>
 <html lang="tr">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <meta name="theme-color" content="#080808" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="Avrupa Turu" />
-    <title>✈️ Avrupa Turu 2026</title>
-    <style>
-      * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { background: #080808; color: white; font-family: Georgia, serif; }
-      #root { min-height: 100vh; }
-    </style>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<meta name="theme-color" content="#080808"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Avrupa Turu"/>
+<title>Avrupa Turu 2026</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#080808;color:#fff;font-family:Georgia,serif;-webkit-tap-highlight-color:transparent;}
+::-webkit-scrollbar{width:0;height:0;}
+a{color:inherit;text-decoration:none;}
+input,button{font-family:Georgia,serif;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const {useState,useRef}=React;
+const load=(k,fb)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):fb;}catch{return fb;}};
+const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch{}};
+const resizeImg=file=>new Promise(res=>{const rd=new FileReader();rd.onload=e=>{const img=new Image();img.onload=()=>{const r=Math.min(800/img.width,800/img.height,1);const c=document.createElement("canvas");c.width=img.width*r;c.height=img.height*r;c.getContext("2d").drawImage(img,0,0,c.width,c.height);res(c.toDataURL("image/jpeg",0.72));};img.src=e.target.result;};rd.readAsDataURL(file);});
+const mapsQ=q=>`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
+const parsePrice=str=>{if(!str)return null;if(/ücretsiz|free/i.test(str))return 0;const m=str.match(/\d+/);return m?parseInt(m[0]):null;};
+const normPrice=(p,cur)=>(!p&&p!==0)?null:(cur&&cur.includes("CHF")?Math.round(p*1.09):p);
+const passFilter=(item,f,cur)=>{if(!f||f.id==="all")return true;const p=normPrice(parsePrice(item.price),cur);if(p===null)return true;if(f.id==="free")return p===0;return p>=(f.min??0)&&p<=(f.max??9999);};
+const PRESETS=[{id:"all",label:"Tümü",emoji:"🔍",color:"#666"},{id:"free",label:"Ücretsiz",emoji:"🆓",color:"#4fc3f7",min:0,max:0},{id:"low",label:"€0–15",emoji:"💚",color:"#66bb6a",min:0,max:15},{id:"mid",label:"€15–35",emoji:"🟡",color:"#ffca28",min:15,max:35},{id:"high",label:"€35+",emoji:"🔴",color:"#ef5350",min:35,max:9999}];
+
+const EU_DB=[
+{id:"berlin",name:"Berlin",country:"Almanya",flag:"🇩🇪",accent:"#90a4ae",currency:"€ Euro",currencyTip:"Nakit yaygın."},
+{id:"munich",name:"Münih",country:"Almanya",flag:"🇩🇪",accent:"#42a5f5",currency:"€ Euro",currencyTip:"Bira bahçelerinde nakit!"},
+{id:"hamburg",name:"Hamburg",country:"Almanya",flag:"🇩🇪",accent:"#ef5350",currency:"€ Euro",currencyTip:"Kart ve nakit."},
+{id:"rome",name:"Roma",country:"İtalya",flag:"🇮🇹",accent:"#ef9a9a",currency:"€ Euro",currencyTip:"Nakit daha iyi."},
+{id:"florence",name:"Floransa",country:"İtalya",flag:"🇮🇹",accent:"#a5d6a7",currency:"€ Euro",currencyTip:"Turistik yerler pahalı."},
+{id:"naples",name:"Napoli",country:"İtalya",flag:"🇮🇹",accent:"#ff8f00",currency:"€ Euro",currencyTip:"Nakit şart!"},
+{id:"barcelona",name:"Barcelona",country:"İspanya",flag:"🇪🇸",accent:"#ef9a9a",currency:"€ Euro",currencyTip:"Pickpocket dikkat!"},
+{id:"madrid",name:"Madrid",country:"İspanya",flag:"🇪🇸",accent:"#ef5350",currency:"€ Euro",currencyTip:"Akşam yemekleri çok geç!"},
+{id:"lisbon",name:"Lizbon",country:"Portekiz",flag:"🇵🇹",accent:"#ffb300",currency:"€ Euro",currencyTip:"En iyi değer/fiyat!"},
+{id:"porto",name:"Porto",country:"Portekiz",flag:"🇵🇹",accent:"#a1887f",currency:"€ Euro",currencyTip:"Lizbon'dan ucuz."},
+{id:"amsterdam",name:"Amsterdam",country:"Hollanda",flag:"🇳🇱",accent:"#ff8a65",currency:"€ Euro",currencyTip:"Bisiklet kirala!"},
+{id:"brussels",name:"Brüksel",country:"Belçika",flag:"🇧🇪",accent:"#ffd54f",currency:"€ Euro",currencyTip:"AB başkenti."},
+{id:"vienna",name:"Viyana",country:"Avusturya",flag:"🇦🇹",accent:"#ce93d8",currency:"€ Euro",currencyTip:"Kafe kültürü güçlü."},
+{id:"zurich",name:"Zürih",country:"İsviçre",flag:"🇨🇭",accent:"#4fc3f7",currency:"CHF Frangı",currencyTip:"En pahalı şehir!"},
+{id:"prague",name:"Prag",country:"Çek Cumhuriyeti",flag:"🇨🇿",accent:"#ffcc80",currency:"CZK Kron",currencyTip:"Uygun fiyat!"},
+{id:"budapest",name:"Budapeşte",country:"Macaristan",flag:"🇭🇺",accent:"#ff8a65",currency:"HUF Forint",currencyTip:"Ucuz şehir!"},
+{id:"athens",name:"Atina",country:"Yunanistan",flag:"🇬🇷",accent:"#90caf9",currency:"€ Euro",currencyTip:"Turistik yerler pahalı."},
+{id:"dubrovnik",name:"Dubrovnik",country:"Hırvatistan",flag:"🇭🇷",accent:"#ef5350",currency:"€ Euro",currencyTip:"Çok turistik!"},
+{id:"london",name:"Londra",country:"İngiltere",flag:"🇬🇧",accent:"#ef5350",currency:"£ Sterlin",currencyTip:"Çok pahalı!"},
+{id:"prague2",name:"Kopenhag",country:"Danimarka",flag:"🇩🇰",accent:"#80deea",currency:"DKK Kron",currencyTip:"Çok pahalı!"},
+{id:"belgrade",name:"Belgrad",country:"Sırbistan",flag:"🇷🇸",accent:"#ef5350",currency:"RSD Dinar",currencyTip:"Çok ucuz!"},
+{id:"monaco",name:"Monako",country:"Monako",flag:"🇲🇨",accent:"#ff0000",currency:"€ Euro",currencyTip:"Dünyanın en pahalısı!"},
+];
+
+const CITIES0=[
+{id:"bremen",name:"Bremen",flag:"🇩🇪",country:"Almanya",dates:"5–7 Tem",nights:3,currency:"€ Euro",currencyTip:"Nakit tercih edilir.",accent:"#f5a623",bg:"linear-gradient(135deg,#1a3a5c,#2d6a9f)",
+restaurants:[
+{name:"Bremen Ratskeller",emoji:"🍺",type:"Akşam — 1.Gece",addr:"Am Markt 28195",phone:"+49 421 321676",hours:"Her gün 11:00–00:00",price:"€25–35/kişi",family:"~€75–105",reserve:"ŞART — 3 gün önce",order:["Labskaus","Ördek but","Weizen birası"],tip:"1408'den beri açık!",mq:"Bremen Ratskeller"},
+{name:"Kleiner Olymp",emoji:"🥩",type:"Öğle — 2.Gün",addr:"Hinter d. Holzpforte 20",phone:"+49 421 326667",hours:"12:30–23:30",price:"€18–25/kişi",family:"~€54–75",reserve:"Akşam şart",order:["Schnitzel mantar soslu","Karidesli pappardelle"],tip:"Dev Schnitzel!",mq:"Kleiner Olymp Bremen"}
+],
+foods:[{name:"Knipp",emoji:"🥚",price:"€8–12",where:"Marktplatz kafeler",mq:"cafe Bremen"},{name:"Alman Sosis Tabağı",emoji:"🌭",price:"€10–14",where:"Sokak tezgahları",mq:"sausage Bremen"},{name:"Rote Grütze",emoji:"🍒",price:"€5–7",where:"Her kafede",mq:"cafe Bremen"},{name:"Pretzel",emoji:"🥨",price:"€2–3",where:"Fırınlar",mq:"bakery Bremen"}],
+snacks:[{name:"Haribo (Alman orijinali!)",emoji:"🍬",price:"€1–3",where:"Her markette",mq:"supermarket Bremen"},{name:"Kümmelkäse",emoji:"🧀",price:"€3–5",where:"Pazar tezgahları",mq:"market Bremen"},{name:"Bremerhaven Balık Sandviç",emoji:"🐟",price:"€4–7",where:"Bremerhaven",mq:"fish Bremerhaven"}],
+attractions:[{name:"Marktplatz & Roland Heykeli",emoji:"🏛️",price:"Ücretsiz",tip:"Rathaus turu €7.50",mq:"Marktplatz Bremen"},{name:"Böttcherstrasse",emoji:"🎨",price:"Ücretsiz",tip:"Saatlik çan müziği",mq:"Böttcherstrasse Bremen"},{name:"Schnoorviertel",emoji:"🏘️",price:"Ücretsiz",tip:"Ortaçağ atmosferi",mq:"Schnoorviertel Bremen"},{name:"Übersee-Museum",emoji:"🌍",price:"€11/kişi",tip:"Salı kapalı.",mq:"Übersee-Museum Bremen"},{name:"Bremen Town Musicians",emoji:"🐴",price:"Ücretsiz",tip:"Eşeğin önayaklarına dokun!",mq:"Bremen Town Musicians"}],
+activities:[{name:"Bürgerpark Sandal",emoji:"🚣",price:"€10",mq:"Bürgerpark Bremen"},{name:"Bremerhaven Deniz Müzesi",emoji:"⚓",price:"€18/kişi",tip:"1.5 saat tren.",mq:"Maritime Museum Bremerhaven"}]},
+
+{id:"liege",name:"Liège",flag:"🇧🇪",country:"Belçika",dates:"8–9 Tem",nights:2,currency:"€ Euro",currencyTip:"Kart yaygın, küçük yerler nakit.",accent:"#f4d03f",bg:"linear-gradient(135deg,#1b4332,#2d6a4f)",
+restaurants:[
+{name:"Une Gaufrette Saperlipopette",emoji:"🧇",type:"Kahvaltı",addr:"Rue des Mineurs 18",phone:"+32 4 222 37 54",hours:"07:00–18:30",price:"€5–8/kişi",family:"~€15–24",reserve:"Yok — Erken git!",order:["Vanilya waffle","Çikolatalı waffle"],tip:"Dışı çıtır içi pamuk!",mq:"Gaufrette Liège"},
+{name:"Café Lequet",emoji:"🥘",type:"Akşam",addr:"Quai sur Meuse 17",phone:"+32 4 222 21 34",hours:"Sal–Cmt 12:00–22:00",price:"€18–28/kişi",family:"~€55–85",reserve:"1–2 gün önce",order:["Boulets à la Liégeoise","Bière de Liège"],tip:"1902'den beri! Milli yemek.",mq:"Café Lequet Liège"}
+],
+foods:[{name:"Belçika Friti",emoji:"🍟",price:"€3–5",where:"Eski şehir",mq:"frite Liège"},{name:"Belçika Çikolatası",emoji:"🍫",price:"€8–20",where:"Çikolata dükkanları",mq:"chocolate Liège"}],
+snacks:[{name:"Gaufre de Liège (sokak)",emoji:"🧇",price:"€2–3",where:"Sokak tezgahları",mq:"waffle Liège"},{name:"Speculoos",emoji:"🍪",price:"€3–5",where:"Süpermarket",mq:"supermarket Liège"},{name:"Praline Çikolata",emoji:"🍫",price:"€1–2/adet",where:"Çikolata dükkanları",mq:"chocolate Liège"}],
+attractions:[{name:"Montagne de Bueren (374 basamak)",emoji:"🪜",price:"Ücretsiz",tip:"Şehir panoraması!",mq:"Montagne de Bueren Liège"},{name:"Liège-Guillemins Gar",emoji:"🚉",price:"Ücretsiz",tip:"Calatrava mimarisi!",mq:"Liège-Guillemins"},{name:"La Boverie Müzesi",emoji:"🖼️",price:"€10/kişi",tip:"Pzt kapalı.",mq:"La Boverie Liège"},{name:"Batte Pazarı (8 Tem Pazar)",emoji:"🛒",price:"Ücretsiz",tip:"Dev pazar!",mq:"Batte market Liège"}],
+activities:[{name:"Waffle Turu",emoji:"🧇",price:"€12–15",tip:"3 farklı yer.",mq:"waffle Liège"},{name:"Meuse Nehri Yürüyüşü",emoji:"🌊",price:"Ücretsiz",mq:"Meuse river Liège"}]},
+
+{id:"paris",name:"Paris",flag:"🇫🇷",country:"Fransa",dates:"10–13 Tem",nights:4,currency:"€ Euro",currencyTip:"Kart her yerde.",accent:"#e74c8b",bg:"linear-gradient(135deg,#4a1040,#8e2469)",
+restaurants:[
+{name:"Brasserie des Prés",emoji:"🥩",type:"Akşam — 1.Gece",addr:"6 Cour du Commerce Saint-André",phone:"+33 1 42 03 44 13",hours:"Her gün 12:00–00:00",price:"€28–42/kişi",family:"~€85–125",reserve:"ŞART — 1 hafta önce",order:["Bœuf Bourguignon","Duck Breast","Profiteroles"],tip:"Muhteşem!",mq:"Brasserie des Prés Paris"},
+{name:"Brasserie Bellanger",emoji:"🐌",type:"Öğle — 3.Gün",addr:"140 Rue Faubourg Poissonnière",phone:"+33 9 54 00 99 65",hours:"Her gün 09:00–23:30",price:"€22–35/kişi",family:"~€66–105",reserve:"Akşam için şart",order:["Escargot!","Soupe à l'oignon","Crème brûlée"],tip:"En iyi soğan çorbası!",mq:"Brasserie Bellanger Paris"}
+],
+foods:[{name:"Pain au Chocolat",emoji:"🥐",price:"€1–2",where:"Her boulangerie",mq:"boulangerie Paris"},{name:"Crêpe sokak",emoji:"🥞",price:"€4–7",where:"Montmartre",mq:"crepe Paris"},{name:"Macaron (Ladurée)",emoji:"🍬",price:"€3–4/adet",where:"75 Champs-Élysées",mq:"Ladurée Paris"},{name:"Jambon-beurre",emoji:"🥪",price:"€4–6",where:"Her bistro",mq:"bistro Paris"}],
+snacks:[{name:"Madeleine Keki",emoji:"🧁",price:"€2–4",where:"Her fırın",mq:"madeleine Paris"},{name:"Éclair",emoji:"🍰",price:"€3–5",where:"Patisserie",mq:"eclair Paris"},{name:"Baguette",emoji:"🥖",price:"€1–2",where:"Her fırın",mq:"boulangerie Paris"},{name:"Chocolat Chaud",emoji:"☕",price:"€5–8",where:"Café de Flore",mq:"Café de Flore Paris"}],
+attractions:[{name:"Eyfel Kulesi",emoji:"🗼",price:"€19–28/kişi",tip:"6 HAFTA ÖNCE AL! ticket.toureiffel.paris",mq:"Eiffel Tower Paris"},{name:"Louvre",emoji:"🏛️",price:"€22/kişi",tip:"6 HAFTA ÖNCE! Salı kapalı.",mq:"Louvre Paris"},{name:"Versailles",emoji:"👑",price:"€21/kişi",tip:"RER C ~€7. 4 HAFTA ÖNCE.",mq:"Palace of Versailles"},{name:"Notre Dame",emoji:"⛪",price:"Ücretsiz",tip:"Restore edildi!",mq:"Notre Dame Paris"},{name:"Arc de Triomphe",emoji:"🏅",price:"€13/kişi",tip:"Gün batımında güzel.",mq:"Arc de Triomphe Paris"},{name:"Montmartre",emoji:"🎨",price:"Ücretsiz",tip:"Sanatçı meydanı.",mq:"Montmartre Paris"}],
+activities:[{name:"14 Temmuz Bastille Günü!",emoji:"🎆",price:"Ücretsiz",tip:"Askeri geçit + havai fişek!",mq:"Champs Elysées Paris"},{name:"Seine Tekne Turu",emoji:"🚢",price:"€17/kişi",tip:"Gece turu.",mq:"Bateaux Mouches Paris"}]},
+
+{id:"interlaken",name:"İnterlaken",flag:"🇨🇭",country:"İsviçre",dates:"14–16 Tem",nights:3,currency:"CHF Frangı",currencyTip:"En pahalı durak! Euro da geçer.",accent:"#e8f4fd",bg:"linear-gradient(135deg,#0f2d4a,#1a6b8a)",
+restaurants:[
+{name:"Harder Kulm Restaurant",emoji:"🏔️",type:"Akşam — 2.Gece",addr:"Harderkulm, Interlaken",phone:"+41 33 828 73 11",hours:"09:30–17:00",price:"CHF 38–55/kişi",family:"~CHF 115–165",reserve:"Önceden al!",order:["Cheese Fondue","Cordon Bleu","Rösti"],tip:"Dağ tepesinde iki gölü görürken!",mq:"Harder Kulm Restaurant Interlaken"},
+{name:"Restaurant Laterne",emoji:"🧀",type:"Akşam — 1.Gece",addr:"Obere Gasse 2",phone:"+41 33 822 87 33",hours:"Sal–Paz 17:00–22:30",price:"CHF 28–42/kişi",family:"~CHF 85–126",reserve:"Aynı gün telefon",order:["Raclette","Rösti"],tip:"Raclette çocuklar seviyor!",mq:"Restaurant Laterne Interlaken"}
+],
+foods:[{name:"İsviçre Çikolatası",emoji:"🍫",price:"CHF 5–25",where:"Marktgasse",mq:"chocolate Interlaken"},{name:"Müsli Kahvaltısı",emoji:"🥣",price:"CHF 8–14",where:"Kafeler",mq:"cafe Interlaken"}],
+snacks:[{name:"Toblerone (orijinal)",emoji:"🍫",price:"CHF 4–8",where:"Her markette",mq:"supermarket Interlaken"},{name:"Raclette Sokak",emoji:"🧀",price:"CHF 8–12",where:"Şehir merkezi",mq:"raclette Interlaken"},{name:"Ovomaltine",emoji:"☕",price:"CHF 4–7",where:"Her kafe",mq:"cafe Interlaken"}],
+attractions:[{name:"Jungfraujoch",emoji:"🏔️",price:"CHF 208/kişi",tip:"3 HAFTA ÖNCE! jungfrau.ch Üstte 0°C!",mq:"Jungfraujoch"},{name:"Harder Kulm + Two Lakes Bridge",emoji:"🚡",price:"CHF 32/kişi",tip:"İki gölü aynı anda!",mq:"Harder Kulm Interlaken"},{name:"Höhematte Parkı",emoji:"🪂",price:"Ücretsiz",tip:"Paraşütçüler iniyor!",mq:"Höhematte Interlaken"},{name:"Brienz Gölü Tekne",emoji:"⛵",price:"CHF 38/kişi",tip:"Turkuaz su!",mq:"Lake Brienz boat"}],
+activities:[{name:"Jungfraujoch Tam Gün",emoji:"🏔️",price:"CHF 208/kişi",tip:"Buz Sarayı + Sfenks.",mq:"Jungfraujoch"},{name:"Göl Kayığı",emoji:"🚣",price:"CHF 25–40/saat",mq:"boat rental Interlaken"}]},
+
+{id:"milano",name:"Milano",flag:"🇮🇹",country:"İtalya",dates:"17–18 Tem",nights:2,currency:"€ Euro",currencyTip:"Kart ve nakit.",accent:"#f39c12",bg:"linear-gradient(135deg,#4a2000,#9b4d0a)",
+restaurants:[
+{name:"Trattoria la Vecchia Guardia",emoji:"🍝",type:"⚠️ PAZARTESİ KAPALI",addr:"Via della Commenda 21",phone:"+39 02 3663 1188",hours:"Sal–Paz 12:00–22:30",price:"€32–45/kişi",family:"~€96–135",reserve:"ŞART — 3 gün önce!",order:["Risotto alla Milanese","Ossobuco","Cotoletta"],tip:"1967'den beri! Ossobuco efsane.",mq:"Trattoria Vecchia Guardia Milano"},
+{name:"Gloria Osteria",emoji:"🌟",type:"Akşam — 2.Gece",addr:"Via Tivoli 3",phone:"+39 344 073 9345",hours:"Her gün 12:00–23:00",price:"€38–55/kişi",family:"~€114–165",reserve:"ŞART — gloria-osteria.com",order:["Cacio e Pepe","Steak Filet","Çikolata sufle"],tip:"Milano'nun en iyi restoranı!",mq:"Gloria Osteria Milano"}
+],
+foods:[{name:"Aperitivo (Navigli)",emoji:"🍹",price:"€8–12",where:"Navigli 18:00+",mq:"aperitivo Navigli"},{name:"Gelato (Peck)",emoji:"🍦",price:"€3–5",where:"Via Spadari 9",mq:"Peck Milano"},{name:"Espresso",emoji:"☕",price:"€1–2",where:"Her bar",mq:"espresso bar Milano"},{name:"Panzerotti (Luini)",emoji:"🥐",price:"€3–5",where:"Via S. Radegonda 16",mq:"Luini Milano"}],
+snacks:[{name:"Amaretti",emoji:"🍪",price:"€3–6",where:"Şekerleme dükkanı",mq:"amaretti Milano"},{name:"Grissini",emoji:"🥖",price:"€2–3",where:"Her markette",mq:"supermarket Milano"},{name:"Granita al Limone",emoji:"🍋",price:"€3–5",where:"Kafeler",mq:"granita Milano"}],
+attractions:[{name:"Duomo + Çatı",emoji:"⛩️",price:"€20/kişi",tip:"3 HAFTA ÖNCE! duomomilano.it",mq:"Duomo Milano rooftop"},{name:"Son Akşam Yemeği",emoji:"🎨",price:"€15/kişi",tip:"3–4 AY ÖNCE! vivaticket.com",mq:"Last Supper Milano"},{name:"Sforzesco Kalesi",emoji:"🏰",price:"Ücretsiz",tip:"Michelangelo'nun son eseri!",mq:"Sforzesco Castle Milano"},{name:"Galleria Vittorio Emanuele II",emoji:"🏪",price:"Ücretsiz",mq:"Galleria Milano"},{name:"Navigli Kanalları",emoji:"🌊",price:"Ücretsiz",tip:"18:00+ aperitivo!",mq:"Navigli Milano"}],
+activities:[{name:"Duomo Çatısı Turu",emoji:"⛩️",price:"€14–20/kişi",mq:"Duomo Milano"},{name:"Son Akşam Yemeği Turu",emoji:"🎨",price:"€15/kişi",mq:"Last Supper Milano"}]},
+
+{id:"venice",name:"Venedik",flag:"🇮🇹",country:"İtalya",dates:"19–21 Tem",nights:3,currency:"€ Euro",currencyTip:"Her şey %20–30 pahalı! Nakit şart.",accent:"#4fc3f7",bg:"linear-gradient(135deg,#0d2b45,#1a5276)",
+restaurants:[
+{name:"Osteria Al Squero",emoji:"🥂",type:"Öğle & Aperatif",addr:"Dorsoduro 944",phone:"+39 041 296 0479",hours:"Pzt–Cum 10:30–21:00 ⚠️PAZ KAPALI",price:"€10–18/kişi",family:"~€30–54",reserve:"Yok — erken git",order:["Cicchetti tabağı","Aperol Spritz"],tip:"Gondol tamirhanesi karşısında!",mq:"Osteria Al Squero Venice"},
+{name:"Cantine del Vino Schiavi",emoji:"🍷",type:"Akşam",addr:"Fondamenta Nani 992",phone:"+39 041 523 0034",hours:"Pzt–Cum 08:30–20:30 ⚠️PAZ KAPALI",price:"€8–15/kişi",family:"~€24–45",reserve:"Yok",order:["Salmon cicchetti €1.60!","Prosecco"],tip:"€1.60 cicchetti — efsane!",mq:"Cantine del Vino Schiavi Venice"}
+],
+foods:[{name:"Risotto Nero",emoji:"🦑",price:"€16–22",where:"Trattoria alla Madonna",mq:"Trattoria alla Madonna Venice"},{name:"Fritto Misto",emoji:"🍤",price:"€18–26",where:"Trattorialar",mq:"fritto misto Venice"},{name:"Tiramisù (orijinal!)",emoji:"🍮",price:"€6–9",where:"Alle Testiere",mq:"Alle Testiere Venice"}],
+snacks:[{name:"Cicchetti (€1.60!)",emoji:"🥪",price:"€1–3",where:"Cantine Schiavi",mq:"bacaro cicchetti Venice"},{name:"Baicoli bisküvisi",emoji:"🍪",price:"€4–6",where:"Şehir dükkanları",mq:"baicoli Venice"},{name:"Sgroppino",emoji:"🍹",price:"€6–9",where:"Kanal barları",mq:"sgroppino Venice"},{name:"Bussolà (Burano)",emoji:"🍩",price:"€5–8",where:"Burano adası",mq:"bussolà Venice"}],
+attractions:[{name:"San Marco Bazilika",emoji:"⛪",price:"Ücretsiz",tip:"Sabah 09:30.",mq:"St Mark's Basilica Venice"},{name:"Doge Sarayı Gizli Rotalar",emoji:"👑",price:"€35/kişi",tip:"3 HAFTA ÖNCE!",mq:"Doge's Palace Venice"},{name:"Rialto Köprüsü",emoji:"🌉",price:"Ücretsiz",tip:"Gün batımında.",mq:"Rialto Bridge Venice"},{name:"Murano — Cam Üfleme",emoji:"🫧",price:"Ücretsiz",tip:"Çocuklar bayılır!",mq:"Murano Island Venice"}],
+activities:[{name:"Gondol Turu",emoji:"🚣",price:"€80–90/tekne",tip:"Sabah kalabalık yok.",mq:"gondola Venice"},{name:"Vaporetto 1 Hat",emoji:"⛴️",price:"€9–10/kişi",mq:"Vaporetto Venice"}]},
+];
+
+const TRANSPORT=[
+{from:"Bremen",to:"Liège",type:"🚆 ICE",duration:"~3.5 saat",price:"€35–60/kişi",total:"~€105–180",book:"omio.com / bahn.de",tip:"3–4 HAFTA ÖNCE!"},
+{from:"Liège",to:"Paris",type:"🚄 Thalys",duration:"~2 saat",price:"€40–80/kişi",total:"~€120–240",book:"thalys.com",tip:"4 HAFTA ÖNCE!"},
+{from:"Paris",to:"İnterlaken",type:"🚄 TGV+IC",duration:"~4 saat",price:"€60–100/kişi",total:"~€180–300",book:"sbb.ch / omio.com",tip:"6 HAFTA ÖNCE!"},
+{from:"İnterlaken",to:"Milano",type:"🚆 EC",duration:"~3.5 saat",price:"€40–70/kişi",total:"~€120–210",book:"trenitalia.com",tip:"3 HAFTA ÖNCE"},
+{from:"Milano",to:"Venedik",type:"🚄 Frecciarossa",duration:"~2.5 saat",price:"€20–50/kişi",total:"~€60–150",book:"trenitalia.com",tip:"2 HAFTA ÖNCE"},
+{from:"Venedik",to:"İstanbul",type:"✈️ Uçak",duration:"~2.5 saat",price:"€50–150/kişi",total:"~€150–450",book:"ryanair.com / wizzair.com",tip:"HEMEN AL! 🔴"},
+];
+
+const TICKETS=[
+{name:"Son Akşam Yemeği",city:"Milano",when:"3–4 AY ÖNCE",url:"vivaticket.com",urgent:true,color:"#ef5350"},
+{name:"Venedik→İstanbul Uçuş",city:"Venedik",when:"HEMEN AL",url:"ryanair.com",urgent:true,color:"#ef5350"},
+{name:"Eyfel Kulesi",city:"Paris",when:"Mayıs başı (6 hafta önce)",url:"ticket.toureiffel.paris",urgent:false,color:"#ffca28"},
+{name:"Louvre",city:"Paris",when:"Mayıs başı (6 hafta önce)",url:"ticket.louvre.fr",urgent:false,color:"#ffca28"},
+{name:"Versailles",city:"Paris",when:"Mayıs sonu (4 hafta önce)",url:"chateauversailles.fr",urgent:false,color:"#66bb6a"},
+{name:"Jungfraujoch",city:"İnterlaken",when:"Haziran başı (3 hafta önce)",url:"jungfrau.ch",urgent:false,color:"#66bb6a"},
+{name:"Doge Sarayı",city:"Venedik",when:"Haziran ortası",url:"palazzoducale.visitmuve.it",urgent:false,color:"#66bb6a"},
+{name:"Duomo Çatısı",city:"Milano",when:"Haziran ortası",url:"duomomilano.it",urgent:false,color:"#66bb6a"},
+{name:"Gloria Osteria Rezervasyon",city:"Milano",when:"Haziran başı",url:"gloria-osteria.com",urgent:false,color:"#4fc3f7"},
+];
+
+/* ── ICONS ── */
+const PinIcon=({s=13,c="currentColor"})=><svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>;
+const CamIcon=({s=13})=><svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>;
+const PlusIcon=({s=13})=><svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>;
+const TrashIcon=({s=13})=><svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg>;
+const SearchIcon=({s=14})=><svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>;
+const GlobeIcon=({s=13})=><svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>;
+const MapBtn=({q,label="Konum",accent="#f5a623",small=false})=>(
+  <a href={mapsQ(q)} target="_blank" rel="noreferrer" style={{display:"inline-flex",alignItems:"center",gap:3,background:`${accent}18`,border:`1px solid ${accent}44`,color:accent,borderRadius:6,padding:small?"3px 7px":"6px 10px",fontSize:small?9:11,fontWeight:"bold",textDecoration:"none",flexShrink:0}}>
+    <PinIcon s={small?10:12} c={accent}/>{label}
+  </a>
+);
+
+/* ── PHOTO STRIP ── */
+function PhotoStrip({photos,onAdd,onDelete,accent}){
+  const ref=useRef();
+  const go=async e=>{const f=e.target.files[0];if(!f)return;onAdd(await resizeImg(f));e.target.value="";};
+  return <div>
+    {photos.length>0&&<div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:4,marginBottom:6}}>
+      {photos.map((p,i)=><div key={i} style={{position:"relative",borderRadius:7,overflow:"hidden",aspectRatio:"1"}}>
+        <img src={p} style={{width:"100%",height:"100%",objectFit:"cover"}} alt=""/>
+        <button onClick={()=>onDelete(i)} style={{position:"absolute",top:2,right:2,background:"rgba(0,0,0,0.8)",border:"none",color:"#fff",borderRadius:4,padding:"1px 5px",cursor:"pointer",fontSize:10}}>✕</button>
+      </div>)}
+    </div>}
+    <button onClick={()=>ref.current.click()} style={{width:"100%",background:`${accent}10`,border:`1px dashed ${accent}55`,borderRadius:7,padding:"7px",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:5,color:accent,fontSize:10}}>
+      <CamIcon s={12}/> Fotoğraf Ekle
+    </button>
+    <input ref={ref} type="file" accept="image/*" style={{display:"none"}} onChange={go}/>
+  </div>;
+}
+
+/* ── BUDGET PANEL ── */
+function BudgetPanel({filter,onChange,accent,currency,customFilters=[],onSaveCustom,onDeleteCustom}){
+  const [showB,setShowB]=useState(false);
+  const [cMin,setCMin]=useState("");const [cMax,setCMax]=useState("");const [cLabel,setCLabel]=useState("");
+  const curr=currency&&currency.includes("CHF")?"CHF":"€";
+  const all=[...PRESETS,...customFilters.map(f=>({...f,isCustom:true}))];
+  return <div style={{background:"#0d0d0d",borderRadius:11,padding:"9px 11px",marginBottom:10}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:7}}>
+      <div style={{fontSize:10,fontWeight:"bold",color:accent}}>💰 Bütçe Filtresi {filter&&filter.id!=="all"&&<span style={{background:`${accent}20`,color:accent,borderRadius:8,padding:"1px 6px",fontSize:9,marginLeft:4}}>{filter.emoji} aktif</span>}</div>
+      <button onClick={()=>setShowB(!showB)} style={{background:`${accent}18`,border:`1px solid ${accent}44`,color:accent,borderRadius:6,padding:"3px 7px",fontSize:9,cursor:"pointer",fontWeight:"bold"}}>+ Özel</button>
+    </div>
+    <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+      {all.map(f=>{const a=filter?.id===f.id;return <div key={f.id} style={{display:"flex",alignItems:"center"}}>
+        <button onClick={()=>onChange(a?PRESETS[0]:f)} style={{background:a?f.color:"#1a1a1a",border:`1px solid ${a?f.color:f.color+"55"}`,color:a?"#000":f.color,borderRadius:f.isCustom?"6px 0 0 6px":"7px",padding:"3px 8px",cursor:"pointer",fontSize:10,fontWeight:"bold"}}>{f.emoji} {f.label}</button>
+        {f.isCustom&&<button onClick={()=>onDeleteCustom(f.id)} style={{background:"#1a1a1a",border:`1px solid ${f.color}55`,borderLeft:"none",color:"#333",borderRadius:"0 6px 6px 0",padding:"3px 5px",cursor:"pointer",fontSize:9}}>✕</button>}
+      </div>;})}
+    </div>
+    {showB&&<div style={{marginTop:8,background:"#141414",borderRadius:8,padding:9,border:`1px solid ${accent}18`}}>
+      <div style={{fontSize:9,color:"#333",marginBottom:6}}>Kendi aralığını oluştur ({curr})</div>
+      <div style={{display:"flex",gap:5,marginBottom:6}}>
+        {[{v:cMin,set:setCMin,ph:"0",l:"Min"},{v:cMax,set:setCMax,ph:"9999",l:"Max"},{v:cLabel,set:setCLabel,ph:`Etiket`,l:"Etiket",flex:2}].map((f,i)=>(
+          <div key={i} style={{flex:f.flex||1}}>
+            <div style={{fontSize:9,color:"#333",marginBottom:2}}>{f.l}</div>
+            <input value={f.v} onChange={e=>f.set(e.target.value)} placeholder={f.ph} type={i<2?"number":"text"} style={{width:"100%",background:"#0a0a0a",border:`1px solid ${accent}22`,borderRadius:5,padding:"5px 7px",color:"#fff",fontSize:11,boxSizing:"border-box",outline:"none"}}/>
+          </div>
+        ))}
+      </div>
+      <button onClick={()=>{
+        const mn=parseFloat(cMin)||0,mx=parseFloat(cMax)||9999;
+        const lbl=cLabel.trim()||`${curr}${mn}–${mx===9999?"∞":mx}`;
+        const clrs=["#e91e63","#9c27b0","#00bcd4","#ff5722","#8bc34a","#ff9800"];
+        const nf={id:"c_"+Date.now(),label:lbl,emoji:"🎯",color:clrs[Math.floor(Math.random()*clrs.length)],min:mn,max:mx,isCustom:true};
+        onSaveCustom(nf);onChange(nf);setCMin("");setCMax("");setCLabel("");setShowB(false);
+      }} style={{width:"100%",background:`linear-gradient(90deg,${accent},${accent}99)`,border:"none",color:"#000",borderRadius:6,padding:"6px",fontSize:10,fontWeight:"bold",cursor:"pointer"}}>✓ Filtre Oluştur</button>
+    </div>}
+    {filter&&filter.id!=="all"&&<div style={{marginTop:5,fontSize:10,color:"#333"}}>
+      {filter.id==="free"?"🆓 Sadece ücretsiz":`💰 ${filter.min??0}${curr}–${filter.max===9999?"∞":(filter.max??"")+curr}`}
+      {" "}<button onClick={()=>onChange(PRESETS[0])} style={{background:"none",border:"none",color:accent,cursor:"pointer",fontSize:9,padding:0,textDecoration:"underline"}}>Temizle</button>
+    </div>}
+  </div>;
+}
+
+/* ── EU CITY BROWSER ── */
+function EUCityBrowser({onAdd,onClose,existingIds}){
+  const [q,setQ]=useState("");
+  const [country,setCountry]=useState("Tümü");
+  const [preview,setPreview]=useState(null);
+  const [aiSnacks,setAiSnacks]=useState({});
+  const [loadingAI,setLoadingAI]=useState(false);
+  const countries=["Tümü",...[...new Set(EU_DB.map(c=>c.country))].sort()];
+  const filtered=EU_DB.filter(c=>{
+    const qm=!q||c.name.toLowerCase().includes(q.toLowerCase())||c.country.toLowerCase().includes(q.toLowerCase());
+    return qm&&(country==="Tümü"||c.country===country);
+  });
+  const fetchSnacks=async(city)=>{
+    if(aiSnacks[city.id]){setPreview({...city,snacks:aiSnacks[city.id]});return;}
+    setLoadingAI(true);setPreview({...city,snacks:[]});
+    try{
+      const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:600,messages:[{role:"user",content:`${city.name}, ${city.country} için en meşhur 5 sokak yiyeceği. Sadece JSON dön, başka hiçbir şey yazma: {"snacks":[{"name":"ad","emoji":"emoji","price":"fiyat","where":"nerede"}]}`}]})});
+      const data=await res.json();
+      const text=data.content?.map(i=>i.text||"").join("").replace(/```json|```/g,"").trim();
+      const parsed=JSON.parse(text);
+      const snacks=parsed.snacks.map(s=>({...s,mq:`${s.name} ${city.name}`}));
+      setAiSnacks(p=>({...p,[city.id]:snacks}));
+      setPreview({...city,snacks});
+    }catch{
+      setPreview({...city,snacks:[{name:"Tekrar dene",emoji:"⚠️",price:"—",where:"AI bağlantı hatası"}]});
+    }
+    setLoadingAI(false);
+  };
+  const BGS=["linear-gradient(135deg,#1a0d2e,#2d1b5c)","linear-gradient(135deg,#0d1f3c,#1a5276)","linear-gradient(135deg,#1b4332,#2d6a4f)","linear-gradient(135deg,#4a1040,#8e2469)","linear-gradient(135deg,#4a2000,#9b4d0a)","linear-gradient(135deg,#0f2d4a,#1a6b8a)"];
+  const addCity=db=>{
+    const city={id:"eu_"+db.id+"_"+Date.now(),name:db.name,flag:db.flag,country:db.country,dates:"",nights:2,currency:db.currency,currencyTip:db.currencyTip,accent:db.accent,bg:BGS[Math.floor(Math.random()*BGS.length)],isCustom:true,restaurants:[],foods:[],snacks:[...(aiSnacks[db.id]||[])],attractions:[],activities:[]};
+    onAdd(city);setPreview(null);
+  };
+  const already=c=>existingIds.some(id=>id.includes("eu_"+c.id)||id===c.id);
+  return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.98)",zIndex:200,display:"flex",flexDirection:"column",fontFamily:"Georgia,serif",maxWidth:480,margin:"0 auto"}}>
+    <div style={{background:"linear-gradient(135deg,#0d1f3c,#1b4332)",padding:"13px 12px 11px",borderBottom:"1px solid #1a2a1a",flexShrink:0}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:9}}>
+        <div><div style={{fontSize:15,fontWeight:"bold",color:"#f5a623"}}>🌍 Avrupa Şehir Rehberi</div><div style={{fontSize:9,color:"#334",marginTop:1}}>{EU_DB.length} şehir · AI ile ara öğün</div></div>
+        <button onClick={onClose} style={{background:"rgba(255,255,255,0.1)",border:"none",color:"#aaa",borderRadius:7,padding:"5px 10px",cursor:"pointer"}}>✕</button>
+      </div>
+      <div style={{position:"relative",marginBottom:7}}>
+        <div style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)",opacity:0.4}}><SearchIcon s={13}/></div>
+        <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Şehir ara..." style={{width:"100%",background:"rgba(0,0,0,0.5)",border:"1px solid #1a3a2a",borderRadius:8,padding:"7px 9px 7px 30px",color:"#fff",fontSize:12,boxSizing:"border-box",outline:"none"}}/>
+      </div>
+      <div style={{display:"flex",gap:4,overflowX:"auto",scrollbarWidth:"none"}}>
+        {countries.map(c=><button key={c} onClick={()=>setCountry(c)} style={{flexShrink:0,padding:"3px 8px",border:"none",borderRadius:9,cursor:"pointer",background:country===c?"#f5a623":"rgba(255,255,255,0.1)",color:country===c?"#000":"#555",fontSize:9,fontWeight:"bold"}}>{c}</button>)}
+      </div>
+    </div>
+    {preview&&<div style={{background:"#0a1a0f",borderBottom:"1px solid #1a3a2a",padding:12,flexShrink:0,maxHeight:"45vh",overflowY:"auto"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+        <div><div style={{fontSize:15,fontWeight:"bold"}}>{preview.flag} {preview.name}</div><div style={{fontSize:10,color:"#334",marginTop:1}}>{preview.country} · {preview.currency}</div></div>
+        <button onClick={()=>setPreview(null)} style={{background:"transparent",border:"none",color:"#333",cursor:"pointer",fontSize:13}}>✕</button>
+      </div>
+      <div style={{fontSize:9,color:"#4fc3f7",fontWeight:"bold",marginBottom:5,letterSpacing:1}}>🍿 MEŞHUR ARA ÖĞÜNLER</div>
+      {loadingAI&&<div style={{textAlign:"center",padding:"18px",color:"#334",fontSize:11}}><div style={{fontSize:22,marginBottom:6}}>🤖</div><div>AI araştırıyor...</div></div>}
+      {!loadingAI&&preview.snacks.map((s,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:6,marginBottom:5,padding:"5px 7px",background:"rgba(255,255,255,0.04)",borderRadius:7}}>
+        <span style={{fontSize:15,flexShrink:0}}>{s.emoji}</span>
+        <div style={{flex:1}}><div style={{fontSize:11,color:"#ccc",fontWeight:"bold"}}>{s.name}</div><div style={{fontSize:9,color:"#234"}}>{s.price} · {s.where}</div></div>
+        <MapBtn q={s.mq||`${s.name} ${preview.name}`} label="" accent="#4fc3f7" small/>
+      </div>)}
+      {already(preview)?
+        <div style={{background:"#0d2010",borderRadius:8,padding:"8px",textAlign:"center",fontSize:11,color:"#4fc3f7"}}>✓ Bu şehir zaten planınızda</div>:
+        <button onClick={()=>addCity(preview)} style={{width:"100%",background:"linear-gradient(90deg,#f5a623,#e74c8b)",border:"none",color:"#000",borderRadius:8,padding:"10px",fontSize:12,fontWeight:"bold",cursor:"pointer",marginTop:8}}>{preview.flag} {preview.name} — Planıma Ekle!</button>
+      }
+    </div>}
+    <div style={{flex:1,overflowY:"auto",padding:9}}>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
+        {filtered.map(c=>{const added=already(c);const sel=preview?.id===c.id;return(
+          <div key={c.id} onClick={()=>fetchSnacks(c)} style={{background:sel?"#1a2a1a":"#0d0d0d",border:`2px solid ${sel?"#4fc3f7":added?"#1a4a2a":"#181818"}`,borderRadius:11,padding:"10px 9px",cursor:"pointer",position:"relative"}}>
+            {added&&<div style={{position:"absolute",top:5,right:5,background:"#1a4a2a",color:"#4fc3f7",borderRadius:4,padding:"1px 4px",fontSize:8,fontWeight:"bold"}}>✓</div>}
+            <div style={{fontSize:19,marginBottom:2}}>{c.flag}</div>
+            <div style={{fontSize:11,fontWeight:"bold",color:sel?"#4fc3f7":"#ddd"}}>{c.name}</div>
+            <div style={{fontSize:8,color:"#234",marginTop:1}}>{c.country}</div>
+            <div style={{fontSize:8,color:"#1a3a2a",marginTop:2}}>{c.currency.split(" ")[0]}</div>
+          </div>
+        );})}
+      </div>
+    </div>
+  </div>;
+}
+
+/* ── ADD ITEM MODAL ── */
+const FOOD_E=["🍕","🍝","🥩","🍺","🧇","🥐","🍦","🍫","🥨","🧀","🥗","🍜","🍣","🍷","🥤","🧆","🫔","🥪","🍔","🍟","🌮","🥞","🍩","🍰","🎂","☕","🍵","🥂","🍸","🍹","🥃","🍒","🍬","🌭","🦑","🍤","🥣","🧁","🥖","🍮","🫕","🥙"];
+const ATT_E=["🏛️","⛪","🏰","🎨","🌊","🏔️","🗼","👑","🎭","🏪","🌳","🎆","🛍️","🏅","🚉","🌉","🏘️","🌍","🗺️","🎡","🪜","🚡","🛒","🖼️","🫧","⛩️","🎪"];
+const ACT_E=["🎯","🚣","🚲","🎭","🎆","🍷","🧺","⛷️","🤿","🏄","🧗","🚡","🎬","🎻","🎨","🛶","🏕️","🌄","⚓","🪂","🍹","⛵","🏊"];
+const REST_E=["🍽️","🥩","🍝","🍕","🍣","🥘","🍺","🌮","🍜","🥗","🍷","☕","🧇","🍱","🥐","🐌","🌟","🥂"];
+
+function AddItemModal({title,fields,accent,onSave,onClose}){
+  const [form,setForm]=useState(()=>Object.fromEntries(fields.map(f=>[f.key,f.default||""])));
+  const set=(k,v)=>setForm(p=>({...p,[k]:v}));
+  return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.93)",zIndex:300,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
+    <div style={{background:"#111",borderRadius:"18px 18px 0 0",padding:14,width:"100%",maxWidth:480,maxHeight:"88vh",overflowY:"auto",fontFamily:"Georgia,serif"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+        <div style={{fontSize:13,fontWeight:"bold",color:accent}}>{title}</div>
+        <button onClick={onClose} style={{background:"#1e1e1e",border:"none",color:"#aaa",borderRadius:6,padding:"3px 9px",cursor:"pointer"}}>✕</button>
+      </div>
+      {fields.map(f=><div key={f.key} style={{marginBottom:8}}>
+        <div style={{fontSize:9,color:"#333",marginBottom:3}}>{f.label}{f.required?" *":""}</div>
+        {f.type==="select"?
+          <div style={{display:"flex",flexWrap:"wrap",gap:3,maxHeight:90,overflowY:"auto"}}>
+            {f.options.map(o=><button key={o} onClick={()=>set(f.key,o)} style={{fontSize:f.key==="emoji"?18:11,padding:f.key==="emoji"?"2px 4px":"2px 7px",background:form[f.key]===o?"#2a2a2a":"transparent",border:form[f.key]===o?`2px solid ${accent}`:"2px solid transparent",borderRadius:5,cursor:"pointer",color:"#ddd"}}>{o}</button>)}
+          </div>:
+          <input value={form[f.key]} onChange={e=>set(f.key,e.target.value)} placeholder={f.ph||""} style={{width:"100%",background:"#1a1a1a",border:"1px solid #222",borderRadius:6,padding:"6px 8px",color:"#fff",fontSize:12,boxSizing:"border-box",outline:"none"}}/>
+        }
+      </div>)}
+      <button onClick={()=>{if(fields.filter(f=>f.required).some(f=>!form[f.key]?.trim()))return alert("Zorunlu alanları doldurun!");onSave(form);onClose();}} style={{width:"100%",background:`linear-gradient(135deg,${accent},${accent}88)`,border:"none",color:"#000",borderRadius:8,padding:10,fontSize:12,fontWeight:"bold",cursor:"pointer",marginTop:4}}>✓ Kaydet</button>
+    </div>
+  </div>;
+}
+
+/* ── MANUAL ADD CITY ── */
+function AddCityManual({onAdd,onClose}){
+  const [form,setForm]=useState({name:"",country:"",flag:"🏙️",dates:"",nights:2,currency:"€ Euro",currencyTip:"",accent:"#f5a623"});
+  const flags=["🏙️","🇩🇪","🇫🇷","🇮🇹","🇪🇸","🇵🇹","🇬🇷","🇳🇱","🇦🇹","🇨🇭","🇧🇪","🇬🇧","🇵🇱","🇨🇿","🇭🇺","🇭🇷","🇹🇷","🌍","🇸🇪","🇩🇰","🇷🇸","🇱🇺","🇲🇨"];
+  const colors=["#f5a623","#e74c8b","#4fc3f7","#81c784","#ff7043","#ab47bc","#26c6da","#ffca28","#ef5350","#66bb6a","#80deea","#ce93d8","#90caf9","#ffb74d"];
+  const set=(k,v)=>setForm(p=>({...p,[k]:v}));
+  return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.93)",zIndex:300,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
+    <div style={{background:"#111",borderRadius:"18px 18px 0 0",padding:14,width:"100%",maxWidth:480,maxHeight:"90vh",overflowY:"auto",fontFamily:"Georgia,serif"}}>
+      <div style={{display:"flex",justifyContent:"space-between",marginBottom:12}}><div style={{fontSize:13,fontWeight:"bold",color:"#f5a623"}}>✏️ Manuel Şehir Ekle</div><button onClick={onClose} style={{background:"#1e1e1e",border:"none",color:"#aaa",borderRadius:6,padding:"3px 9px",cursor:"pointer"}}>✕</button></div>
+      {[{l:"Şehir Adı *",k:"name",ph:"örn: Barcelona"},{l:"Ülke",k:"country",ph:"örn: İspanya"},{l:"Tarihler",k:"dates",ph:"23–25 Tem"},{l:"Para Birimi",k:"currency",ph:"€ Euro"},{l:"Para Notu",k:"currencyTip",ph:"Nakit tercih edilir"}].map(f=>(
+        <div key={f.k} style={{marginBottom:8}}><div style={{fontSize:9,color:"#333",marginBottom:2}}>{f.l}</div><input value={form[f.k]} onChange={e=>set(f.k,e.target.value)} placeholder={f.ph} style={{width:"100%",background:"#1a1a1a",border:"1px solid #222",borderRadius:6,padding:"6px 8px",color:"#fff",fontSize:12,boxSizing:"border-box",outline:"none"}}/></div>
+      ))}
+      <div style={{marginBottom:8}}><div style={{fontSize:9,color:"#333",marginBottom:2}}>Kaç Gece</div><input type="number" value={form.nights} onChange={e=>set("nights",e.target.value)} min="1" max="21" style={{width:"100%",background:"#1a1a1a",border:"1px solid #222",borderRadius:6,padding:"6px 8px",color:"#fff",fontSize:12,boxSizing:"border-box",outline:"none"}}/></div>
+      <div style={{marginBottom:9}}><div style={{fontSize:9,color:"#333",marginBottom:4}}>Bayrak</div><div style={{display:"flex",flexWrap:"wrap",gap:3,maxHeight:80,overflowY:"auto"}}>{flags.map(f=><button key={f} onClick={()=>set("flag",f)} style={{fontSize:17,background:form.flag===f?"#222":"transparent",border:form.flag===f?`2px solid ${form.accent}`:"2px solid transparent",borderRadius:4,padding:"1px 3px",cursor:"pointer"}}>{f}</button>)}</div></div>
+      <div style={{marginBottom:12}}><div style={{fontSize:9,color:"#333",marginBottom:4}}>Renk</div><div style={{display:"flex",gap:5,flexWrap:"wrap"}}>{colors.map(c=><div key={c} onClick={()=>set("accent",c)} style={{width:22,height:22,borderRadius:"50%",background:c,cursor:"pointer",border:form.accent===c?"3px solid #fff":"3px solid transparent"}}/>)}</div></div>
+      <button onClick={()=>{if(!form.name.trim())return alert("Şehir adı zorunlu!");onAdd({...form,id:"m_"+Date.now(),nights:Number(form.nights),restaurants:[],foods:[],snacks:[],attractions:[],activities:[],isCustom:true,bg:"linear-gradient(135deg,#111,#1a1a2a)"});}} style={{width:"100%",background:`linear-gradient(135deg,${form.accent},${form.accent}88)`,border:"none",color:"#000",borderRadius:8,padding:10,fontSize:12,fontWeight:"bold",cursor:"pointer"}}>{form.flag} {form.name||"Şehir"} Ekle</button>
+    </div>
+  </div>;
+}
+
+/* ── ROUTE MAP ── */
+function RouteMap({cities,onClose}){
+  const coords={bremen:{x:39,y:15},liege:{x:34,y:26},paris:{x:26,y:37},interlaken:{x:42,y:47},milano:{x:44,y:54},venice:{x:53,y:49}};
+  const home={n:"İstanbul",f:"🇹🇷",x:88,y:70};
+  const pts=[home,...cities.map(c=>({n:c.name,f:c.flag,d:c.dates,...(coords[c.id]||{x:45,y:42})}))];
+  const segs=pts.slice(0,-1).map((_,i)=>[i,i+1]).concat([[pts.length-1,0]]);
+  const mUrl=`https://www.google.com/maps/dir/Istanbul,Turkey/${cities.map(c=>encodeURIComponent(c.name)).join("/")}`;
+  return <div style={{position:"fixed",inset:0,background:"#050d1a",zIndex:100,display:"flex",flexDirection:"column",fontFamily:"Georgia,serif",maxWidth:480,margin:"0 auto"}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"11px 13px",borderBottom:"1px solid #1a2a3a",flexShrink:0}}>
+      <div><div style={{fontSize:14,fontWeight:"bold",color:"#f5a623"}}>✈️ Tam Rota</div><div style={{fontSize:9,color:"#334",marginTop:1}}>{cities.length} şehir</div></div>
+      <div style={{display:"flex",gap:5}}>
+        <a href={mUrl} target="_blank" rel="noreferrer" style={{background:"#0d2a1a",border:"1px solid #2a5a3a",color:"#4fc3f7",borderRadius:7,padding:"5px 9px",fontSize:10,fontWeight:"bold",display:"flex",alignItems:"center",gap:3}}><GlobeIcon s={11}/> Maps</a>
+        <button onClick={onClose} style={{background:"#1a1a2a",border:"1px solid #333",color:"#aaa",borderRadius:7,padding:"5px 10px",cursor:"pointer",fontSize:11}}>✕</button>
+      </div>
+    </div>
+    <div style={{flex:1,overflowY:"auto",padding:10}}>
+      <div style={{position:"relative",background:"linear-gradient(135deg,#071428,#0a1f0f)",borderRadius:12,overflow:"hidden",width:"100%",paddingBottom:"62%",marginBottom:11}}>
+        <svg style={{position:"absolute",inset:0,width:"100%",height:"100%"}} viewBox="0 0 100 62">
+          <defs><marker id="ar" markerWidth="5" markerHeight="5" refX="3" refY="2.5" orient="auto"><path d="M0,0 L5,2.5 L0,5 Z" fill="#f5a623" opacity="0.8"/></marker></defs>
+          {segs.map((s,i)=>{const a=pts[s[0]],b=pts[s[1]],cx=(a.x+b.x)/2,cy=(a.y+b.y)/2-5;const isR=i===segs.length-1;return isR?
+            <path key={i} d={`M${a.x},${a.y} Q${cx+5},${cy+6} ${b.x},${b.y}`} fill="none" stroke="#ff6b6b" strokeWidth="0.55" strokeDasharray="2,1.5" opacity="0.65"/>:
+            <path key={i} d={`M${a.x},${a.y} Q${cx},${cy} ${b.x},${b.y}`} fill="none" stroke="#f5a623" strokeWidth="0.7" opacity="0.8" markerEnd="url(#ar)"/>;})}
+          {pts.map((p,i)=><g key={i}>
+            <circle cx={p.x} cy={p.y} r={i===0?2.5:2} fill={i===0?"#ff6b6b":"#f5a623"} opacity="0.9"/>
+            <text x={p.x} y={p.y-3.5} textAnchor="middle" fontSize="3.5">{p.f}</text>
+            <text x={p.x} y={p.y+5.5} textAnchor="middle" fontSize="1.9" fill="#fff" fontWeight="bold">{p.n}</text>
+            {p.d&&<text x={p.x} y={p.y+8.5} textAnchor="middle" fontSize="1.6" fill="#f5a623">{p.d}</text>}
+          </g>)}
+        </svg>
+      </div>
+      <div style={{display:"flex",flexDirection:"column",gap:5}}>
+        {[{n:"İstanbul",f:"🇹🇷",d:"Başlangıç/Dönüş",c:"#ff6b6b",q:"Istanbul Turkey"},...cities.map(c=>({n:c.name,f:c.flag,d:`${c.dates||"—"} · ${c.nights} gece`,c:c.accent,q:`${c.name} ${c.country||""}`}))].map((item,i)=>(
+          <div key={i} style={{background:"#0d1a2a",borderRadius:7,padding:"7px 10px",display:"flex",alignItems:"center",gap:6,borderLeft:`3px solid ${item.c}`}}>
+            <span style={{fontSize:16}}>{item.f}</span>
+            <div style={{flex:1}}><div style={{fontSize:11,fontWeight:"bold",color:"#ddd"}}>{item.n}</div><div style={{fontSize:9,color:"#334"}}>{item.d}</div></div>
+            <MapBtn q={item.q} label="Haritada" accent={item.c} small/>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>;
+}
+
+/* ── CHECK ITEM ── */
+function CheckItem({label,sub,checked,onToggle,accent,emoji,photos,onAddPhoto,onDeletePhoto,mq,onDelete,dimmed}){
+  const [open,setOpen]=useState(false);
+  return <div style={{background:checked?"#071207":dimmed?"#080808":"#0f0f0f",borderRadius:9,marginBottom:5,border:`1px solid ${checked?accent+"44":dimmed?"#0f0f0f":"#181818"}`,opacity:dimmed?0.32:1,transition:"all 0.2s"}}>
+    <div style={{display:"flex",alignItems:"flex-start",gap:7,padding:"8px 9px",cursor:"pointer"}} onClick={onToggle}>
+      <div style={{width:20,height:20,borderRadius:5,border:`2px solid ${checked?accent:"#2a2a2a"}`,background:checked?accent:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1}}>
+        {checked&&<span style={{color:"#000",fontSize:11,fontWeight:"bold"}}>✓</span>}
+      </div>
+      <div style={{flex:1,minWidth:0}}>
+        <div style={{fontSize:12,color:checked?"#444":dimmed?"#333":"#ccc",textDecoration:checked?"line-through":"none",lineHeight:1.4}}>
+          {emoji&&<span style={{marginRight:3}}>{emoji}</span>}{label}
+        </div>
+        {sub&&<div style={{fontSize:9,color:"#1e1e1e",marginTop:2,lineHeight:1.3}}>{sub}</div>}
+        {photos?.length>0&&<div style={{fontSize:8,color:accent,marginTop:1}}>📸 {photos.length}</div>}
+      </div>
+      {onDelete&&<button onClick={e=>{e.stopPropagation();if(window.confirm("Sil?"))onDelete();}} style={{background:"transparent",border:"none",color:"#222",cursor:"pointer",padding:"1px 2px"}}><TrashIcon s={12}/></button>}
+    </div>
+    <div style={{display:"flex",gap:3,padding:"0 9px 6px",flexWrap:"wrap"}}>
+      {mq&&<MapBtn q={mq} label="Konum" accent={accent} small/>}
+      <button onClick={()=>setOpen(!open)} style={{background:`${accent}10`,border:`1px solid ${accent}22`,color:accent,borderRadius:5,padding:"2px 6px",fontSize:9,cursor:"pointer",display:"flex",alignItems:"center",gap:2,fontWeight:"bold"}}>
+        <CamIcon s={10}/>{open?"Kapat":"Fotoğraf"}
+      </button>
+    </div>
+    {open&&<div style={{padding:"0 9px 9px"}}><PhotoStrip photos={photos||[]} onAdd={onAddPhoto} onDelete={onDeletePhoto} accent={accent}/></div>}
+  </div>;
+}
+
+/* ── MODAL CONFIGS ── */
+const MODALS={
+  foods:{title:"🥘 Yemek Ekle",fields:[{key:"emoji",label:"Emoji",type:"select",options:FOOD_E,default:"🍽️"},{key:"name",label:"Yemek Adı",required:true,ph:"Pizza"},{key:"price",label:"Fiyat",ph:"€8–12"},{key:"where",label:"Nerede",ph:"Kafeler"},{key:"mq",label:"Konum",ph:"pizza"}]},
+  snacks:{title:"🍿 Ara Öğün Ekle",fields:[{key:"emoji",label:"Emoji",type:"select",options:FOOD_E,default:"🍿"},{key:"name",label:"Adı",required:true,ph:"Churros"},{key:"price",label:"Fiyat",ph:"€2–4"},{key:"where",label:"Nerede",ph:"Sokak"},{key:"mq",label:"Konum",ph:"churros"}]},
+  restaurants:{title:"🍽️ Restoran Ekle",fields:[{key:"emoji",label:"Emoji",type:"select",options:REST_E,default:"🍽️"},{key:"name",label:"Restoran Adı",required:true,ph:"Trattoria Roma"},{key:"type",label:"Öğün",ph:"Akşam"},{key:"addr",label:"Adres",ph:"Via Roma 12"},{key:"phone",label:"Tel",ph:"+39 06 123"},{key:"hours",label:"Saatler",ph:"12:00–22:00"},{key:"price",label:"Fiyat/kişi",ph:"€20–30/kişi"},{key:"family",label:"Aile",ph:"~€60–90"},{key:"reserve",label:"Rezervasyon",ph:"1 hafta önce"},{key:"tip",label:"İpucu",ph:""},{key:"mq",label:"Konum",ph:"restaurant Roma"}]},
+  attractions:{title:"🗺️ Yer Ekle",fields:[{key:"emoji",label:"Emoji",type:"select",options:ATT_E,default:"🗺️"},{key:"name",label:"Yer Adı",required:true,ph:"Colosseum"},{key:"price",label:"Giriş",ph:"€18"},{key:"tip",label:"İpucu",ph:"Sabah erken"},{key:"mq",label:"Konum",ph:"Colosseum Rome"}]},
+  activities:{title:"🎯 Etkinlik Ekle",fields:[{key:"emoji",label:"Emoji",type:"select",options:ACT_E,default:"🎯"},{key:"name",label:"Etkinlik",required:true,ph:"Flamenco"},{key:"price",label:"Fiyat",ph:"€25/kişi"},{key:"tip",label:"İpucu",ph:""},{key:"mq",label:"Konum",ph:"flamenco"}]},
+};
+
+/* ── RESTAURANT CARD ── */
+function RestCard({r,accent,idx,cityId,checked,onToggle,photos,onAddPhoto,onDeletePhoto,onDelete,dimmed}){
+  const [open,setOpen]=useState(false);
+  return <div style={{background:checked?"#071207":dimmed?"#080808":"#111",borderRadius:10,marginBottom:8,border:`1px solid ${checked?accent+"44":dimmed?"#0a0a0a":"#1a1a1a"}`,opacity:dimmed?0.32:1}}>
+    <div style={{padding:"9px 10px",cursor:"pointer"}} onClick={()=>setOpen(!open)}>
+      <div style={{display:"flex",alignItems:"flex-start",gap:7}}>
+        <div style={{width:20,height:20,borderRadius:5,border:`2px solid ${checked?accent:"#2a2a2a"}`,background:checked?accent:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1}} onClick={e=>{e.stopPropagation();onToggle();}}>
+          {checked&&<span style={{color:"#000",fontSize:11,fontWeight:"bold"}}>✓</span>}
+        </div>
+        <div style={{flex:1}}>
+          <div style={{display:"flex",alignItems:"center",gap:4,marginBottom:2}}>
+            <span style={{fontSize:15}}>{r.emoji}</span>
+            <span style={{fontSize:12,fontWeight:"bold",color:checked?"#444":"#ddd"}}>{r.name}</span>
+          </div>
+          <div style={{fontSize:9,color:accent+"99"}}>{r.type}</div>
+          {r.price&&<div style={{fontSize:9,color:"#1e1e1e",marginTop:1}}>{r.price} · Aile: {r.family}</div>}
+        </div>
+        <span style={{color:"#222",fontSize:11}}>{open?"▲":"▼"}</span>
+        {onDelete&&<button onClick={e=>{e.stopPropagation();if(window.confirm("Sil?"))onDelete();}} style={{background:"transparent",border:"none",color:"#222",cursor:"pointer"}}><TrashIcon s={12}/></button>}
+      </div>
+    </div>
+    {open&&<div style={{padding:"0 10px 10px",borderTop:"1px solid #1a1a1a"}}>
+      <div style={{display:"flex",flexDirection:"column",gap:4,marginTop:8}}>
+        {r.addr&&<div style={{fontSize:10,color:"#334"}}>📍 {r.addr}</div>}
+        {r.phone&&<div style={{fontSize:10,color:"#334"}}>📞 <a href={`tel:${r.phone}`} style={{color:"#4fc3f7"}}>{r.phone}</a></div>}
+        {r.hours&&<div style={{fontSize:10,color:"#334"}}>🕐 {r.hours}</div>}
+        {r.reserve&&<div style={{fontSize:10,color:`${accent}`}}>⚠️ Rezervasyon: {r.reserve}</div>}
+        {r.tip&&<div style={{fontSize:10,color:"#334",fontStyle:"italic"}}>💡 {r.tip}</div>}
+        {r.order&&r.order.length>0&&<div style={{marginTop:4}}>
+          <div style={{fontSize:9,color:accent,fontWeight:"bold",marginBottom:3}}>SİPARİŞ EDİLECEK:</div>
+          {r.order.map((o,i)=><div key={i} style={{fontSize:10,color:"#ccc",padding:"3px 0"}}>• {o}</div>)}
+        </div>}
+      </div>
+      <div style={{display:"flex",gap:4,marginTop:8,flexWrap:"wrap"}}>
+        {r.mq&&<MapBtn q={r.mq} label="Haritada Bul" accent={accent}/>}
+        {r.phone&&<a href={`tel:${r.phone}`} style={{display:"inline-flex",alignItems:"center",gap:3,background:`${accent}18`,border:`1px solid ${accent}44`,color:accent,borderRadius:6,padding:"5px 9px",fontSize:10,fontWeight:"bold"}}>📞 Ara</a>}
+      </div>
+      <div style={{marginTop:8}}><PhotoStrip photos={photos||[]} onAdd={onAddPhoto} onDelete={onDeletePhoto} accent={accent}/></div>
+    </div>}
+  </div>;
+}
+
+/* ── MAIN APP ── */
+function App(){
+  const [cities,setCities]=useState(()=>{const cc=load("cc9",[]);return cc.length?[...CITIES0,...cc]:CITIES0;});
+  const [customItems,setCustomItems]=useState(()=>load("ci9",{}));
+  const [progress,setProgress]=useState(()=>load("tp9",{}));
+  const [photos,setPhotos]=useState(()=>load("ph9",{}));
+  const [activeTab,setActiveTab]=useState("cities");
+  const [selCity,setSelCity]=useState(null);
+  const [cityTab,setCityTab]=useState("checklist");
+  const [modal,setModal]=useState(null);
+  const [addMode,setAddMode]=useState(null);
+  const [showMap,setShowMap]=useState(false);
+  const [cityFilters,setCityFilters]=useState(()=>load("cf9",{}));
+  const [customFilters,setCustomFilters]=useState(()=>load("cuf9",{}));
+
+  const getItems=useCallback((cid,t)=>{const city=cities.find(c=>c.id===cid);return[...(city?.[t]||[]),...(customItems[cid]?.[t]||[]).map(i=>({...i,isCustom:true}))];},[cities,customItems]);
+  const addCustomItem=(cid,t,item)=>{const prev=customItems[cid]||{};const nc={...customItems,[cid]:{...prev,[t]:[...(prev[t]||[]),item]}};setCustomItems(nc);save("ci9",nc);setModal(null);};
+  const deleteCustomItem=(cid,t,gi)=>{const city=cities.find(c=>c.id===cid);const bl=(city?.[t]||[]).length;const ci2=gi-bl;if(ci2<0)return;const prev=customItems[cid]||{};const nc={...customItems,[cid]:{...prev,[t]:(prev[t]||[]).filter((_,i)=>i!==ci2)}};setCustomItems(nc);save("ci9",nc);};
+  const toggleCheck=(cid,t,i)=>{const k=`${cid}_${t}_${i}`;const np={...progress,[k]:!progress[k]};setProgress(np);save("tp9",np);};
+  const addPhoto=(cid,t,i,b64)=>{const k=`${cid}_${t}_${i}`;const np={...photos,[k]:[...(photos[k]||[]),b64]};setPhotos(np);save("ph9",np);};
+  const deletePhoto=(cid,t,i,pi)=>{const k=`${cid}_${t}_${i}`;const np={...photos,[k]:(photos[k]||[]).filter((_,j)=>j!==pi)};setPhotos(np);save("ph9",np);};
+  const setFilter=(cid,f)=>{const nc={...cityFilters,[cid]:f};setCityFilters(nc);save("cf9",nc);};
+  const saveCustomFilter=(cid,f)=>{const prev=customFilters[cid]||[];const nc={...customFilters,[cid]:[...prev,f]};setCustomFilters(nc);save("cuf9",nc);};
+  const deleteCustomFilter=(cid,fid)=>{const nc={...customFilters,[cid]:(customFilters[cid]||[]).filter(f=>f.id!==fid)};setCustomFilters(nc);save("cuf9",nc);if(cityFilters[cid]?.id===fid)setFilter(cid,PRESETS[0]);};
+  const getChecked=(cid,t,i)=>!!progress[`${cid}_${t}_${i}`];
+  const getPhotos=(cid,t,i)=>photos[`${cid}_${t}_${i}`]||[];
+  const getCityProg=c=>{let d=0,t=0;["restaurants","foods","snacks","attractions","activities"].forEach(type=>{const a=getItems(c.id,type);t+=a.length;a.forEach((_,i)=>{if(getChecked(c.id,type,i))d++;});});return{done:d,total:t,pct:t?Math.round(d/t*100):0};};
+  const addCity=city=>{const nc=[...cities,city];setCities(nc);save("cc9",nc.filter(c=>c.isCustom));setAddMode(null);};
+  const deleteCity=id=>{if(!window.confirm("Bu şehri sil?"))return;const nc=cities.filter(c=>c.id!==id);setCities(nc);save("cc9",nc.filter(c=>c.isCustom));if(selCity===id)setSelCity(null);};
+
+  const city=selCity?cities.find(c=>c.id===selCity):null;
+
+  if(showMap)return <RouteMap cities={cities} onClose={()=>setShowMap(false)}/>;
+  if(addMode==="browser")return <EUCityBrowser onAdd={addCity} onClose={()=>setAddMode(null)} existingIds={cities.map(c=>c.id)}/>;
+  if(addMode==="manual")return <AddCityManual onAdd={addCity} onClose={()=>setAddMode(null)}/>;
+
+  /* CITY DETAIL */
+  if(city){
+    const prog=getCityProg(city);
+    const af=cityFilters[city.id]||PRESETS[0];
+    const myCF=customFilters[city.id]||[];
+    const CTABS=[{id:"checklist",l:"☑️ Hepsi"},{id:"restaurants",l:"🍽️ Restoran"},{id:"foods",l:"🥘 Yemek"},{id:"snacks",l:"🍿 Ara"},{id:"attractions",l:"🗺️ Geziler"},{id:"activities",l:"🎯 Etkinlik"}];
+    const Row=({type,item,i})=><CheckItem label={item.name} sub={[item.price,item.where||item.type||item.addr].filter(Boolean).join(" — ")} checked={getChecked(city.id,type,i)} onToggle={()=>toggleCheck(city.id,type,i)} accent={city.accent} emoji={item.emoji} photos={getPhotos(city.id,type,i)} onAddPhoto={b=>addPhoto(city.id,type,i,b)} onDeletePhoto={pi=>deletePhoto(city.id,type,i,pi)} mq={item.mq||item.addr} onDelete={item.isCustom?()=>deleteCustomItem(city.id,type,i):null} dimmed={!passFilter(item,af,city.currency)}/>;
+    const AddBtn=({type})=><button onClick={()=>setModal({type,cityId:city.id})} style={{width:"100%",background:"transparent",border:`1px dashed ${city.accent}33`,borderRadius:7,padding:"7px",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:4,color:city.accent,fontSize:10,marginTop:3}}><PlusIcon s={11}/>{MODALS[type].title}</button>;
+    return <div style={{minHeight:"100vh",background:"#080808",color:"#fff",maxWidth:480,margin:"0 auto",fontFamily:"Georgia,serif"}}>
+      {modal&&MODALS[modal.type]&&<AddItemModal {...MODALS[modal.type]} accent={city.accent} onSave={item=>addCustomItem(city.id,modal.type,item)} onClose={()=>setModal(null)}/>}
+      {/* HEADER */}
+      <div style={{background:city.bg,position:"sticky",top:0,zIndex:10,paddingBottom:7}}>
+        <div style={{display:"flex",alignItems:"center",gap:5,padding:"10px 11px 0"}}>
+          <button onClick={()=>{setSelCity(null);setCityTab("checklist");}} style={{background:"rgba(255,255,255,0.2)",border:"none",color:"#fff",borderRadius:12,padding:"4px 8px",cursor:"pointer",fontSize:11}}>← Geri</button>
+          <div style={{flex:1}}><div style={{fontSize:15,fontWeight:"bold"}}>{city.flag} {city.name}</div><div style={{fontSize:9,opacity:0.6}}>{city.dates||"—"} · {city.nights} gece · {city.currency}</div></div>
+          <div style={{display:"flex",gap:4}}>
+            <MapBtn q={`${city.name} ${city.country||""}`} label="" accent={city.accent} small/>
+            {city.isCustom&&<button onClick={()=>deleteCity(city.id)} style={{background:"rgba(255,0,0,0.15)",border:"none",color:"#ff8888",borderRadius:5,padding:"3px 5px",cursor:"pointer"}}><TrashIcon s={12}/></button>}
+          </div>
+        </div>
+        <div style={{margin:"5px 11px 0",background:"rgba(0,0,0,0.25)",borderRadius:7,padding:"4px 8px"}}>
+          <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}><span style={{fontSize:8,color:"rgba(255,255,255,0.4)"}}>İlerleme</span><span style={{fontSize:9,fontWeight:"bold",color:city.accent}}>{prog.done}/{prog.total} · %{prog.pct}</span></div>
+          <div style={{background:"rgba(0,0,0,0.4)",borderRadius:3,height:3}}><div style={{background:city.accent,height:3,borderRadius:3,width:`${prog.pct}%`,transition:"width 0.4s"}}/></div>
+        </div>
+        <div style={{margin:"4px 11px 0",background:"rgba(255,255,255,0.08)",borderRadius:5,padding:"3px 7px",fontSize:9}}>💱 {city.currency} — {city.currencyTip}</div>
+        <div style={{display:"flex",gap:3,padding:"5px 11px 0",overflowX:"auto",scrollbarWidth:"none"}}>
+          {CTABS.map(t=><button key={t.id} onClick={()=>setCityTab(t.id)} style={{flexShrink:0,padding:"3px 7px",border:"none",borderRadius:11,cursor:"pointer",background:cityTab===t.id?city.accent:"rgba(255,255,255,0.1)",color:cityTab===t.id?"#000":"#999",fontSize:9,fontWeight:"bold"}}>{t.l}</button>)}
+        </div>
+      </div>
+      <div style={{padding:11,paddingBottom:80}}>
+        <BudgetPanel filter={af} onChange={f=>setFilter(city.id,f)} accent={city.accent} currency={city.currency} customFilters={myCF} onSaveCustom={f=>saveCustomFilter(city.id,f)} onDeleteCustom={fid=>deleteCustomFilter(city.id,fid)}/>
+        {/* CHECKLIST TAB */}
+        {cityTab==="checklist"&&<div>
+          {[{type:"attractions",title:"🗺️ Gezilecek Yerler"},{type:"activities",title:"🎯 Etkinlikler"},{type:"restaurants",title:"🍽️ Restoranlar"},{type:"foods",title:"🥘 Yemekler"},{type:"snacks",title:"🍿 Ara Öğünler"}].map(s=>{
+            const items=getItems(city.id,s.type);
+            return items.length>0&&<div key={s.type} style={{marginBottom:12}}>
+              <div style={{fontSize:9,color:city.accent,fontWeight:"bold",marginBottom:4,letterSpacing:1}}>{s.title}</div>
+              {items.map((item,i)=><Row key={i} type={s.type} item={item} i={i}/>)}
+            </div>;
+          })}
+          <div style={{background:"#0d0d0d",borderRadius:9,padding:9,marginTop:6,textAlign:"center",fontSize:9,color:"#1a1a1a"}}>Yukarıdaki sekmeleri kullanarak yeni öğeler ekleyebilirsiniz</div>
+        </div>}
+        {/* RESTAURANTS TAB */}
+        {cityTab==="restaurants"&&<div>
+          {getItems(city.id,"restaurants").map((r,i)=><RestCard key={i} r={r} accent={city.accent} idx={i} cityId={city.id} checked={getChecked(city.id,"restaurants",i)} onToggle={()=>toggleCheck(city.id,"restaurants",i)} photos={getPhotos(city.id,"restaurants",i)} onAddPhoto={b=>addPhoto(city.id,"restaurants",i,b)} onDeletePhoto={pi=>deletePhoto(city.id,"restaurants",i,pi)} onDelete={r.isCustom?()=>deleteCustomItem(city.id,"restaurants",i):null} dimmed={!passFilter(r,af,city.currency)}/>)}
+          <AddBtn type="restaurants"/>
+        </div>}
+        {/* FOODS TAB */}
+        {cityTab==="foods"&&<div>
+          {getItems(city.id,"foods").map((item,i)=><Row key={i} type="foods" item={item} i={i}/>)}
+          <AddBtn type="foods"/>
+        </div>}
+        {/* SNACKS TAB */}
+        {cityTab==="snacks"&&<div>
+          {getItems(city.id,"snacks").map((item,i)=><Row key={i} type="snacks" item={item} i={i}/>)}
+          <AddBtn type="snacks"/>
+        </div>}
+        {/* ATTRACTIONS TAB */}
+        {cityTab==="attractions"&&<div>
+          {getItems(city.id,"attractions").map((item,i)=><Row key={i} type="attractions" item={item} i={i}/>)}
+          <AddBtn type="attractions"/>
+        </div>}
+        {/* ACTIVITIES TAB */}
+        {cityTab==="activities"&&<div>
+          {getItems(city.id,"activities").map((item,i)=><Row key={i} type="activities" item={item} i={i}/>)}
+          <AddBtn type="activities"/>
+        </div>}
+      </div>
+    </div>;
+  }
+
+  /* HOME SCREEN */
+  const totalProg=(()=>{let d=0,t=0;cities.forEach(c=>{const p=getCityProg(c);d+=p.done;t+=p.total;});return{done:d,total:t,pct:t?Math.round(d/t*100):0};})();
+  return <div style={{minHeight:"100vh",background:"#080808",color:"#fff",maxWidth:480,margin:"0 auto",fontFamily:"Georgia,serif"}}>
+    {/* TOP NAV */}
+    <div style={{background:"linear-gradient(135deg,#0d1f0d,#1a2a1a)",padding:"13px 13px 10px",position:"sticky",top:0,zIndex:10,borderBottom:"1px solid #111"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+        <div><div style={{fontSize:18,fontWeight:"bold",color:"#f5a623"}}>✈️ Avrupa Turu 2026</div><div style={{fontSize:10,color:"#334",marginTop:1}}>5 Tem – 22 Tem · 3 Kişi · 20 Gün</div></div>
+        <button onClick={()=>setShowMap(true)} style={{background:"#0d2a1a",border:"1px solid #1a5a2a",color:"#4fc3f7",borderRadius:8,padding:"6px 10px",cursor:"pointer",fontSize:10,fontWeight:"bold",display:"flex",alignItems:"center",gap:4}}><GlobeIcon s={12}/>🗺️ Rota</button>
+      </div>
+      <div style={{background:"rgba(0,0,0,0.4)",borderRadius:8,padding:"6px 10px"}}>
+        <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}><span style={{fontSize:9,color:"#334"}}>Genel İlerleme</span><span style={{fontSize:10,fontWeight:"bold",color:"#f5a623"}}>{totalProg.done}/{totalProg.total} · %{totalProg.pct}</span></div>
+        <div style={{background:"rgba(0,0,0,0.5)",borderRadius:4,height:5}}><div style={{background:"linear-gradient(90deg,#f5a623,#e74c8b)",height:5,borderRadius:4,width:`${totalProg.pct}%`,transition:"width 0.5s"}}/></div>
+      </div>
+      <div style={{display:"flex",gap:5,marginTop:8}}>
+        {["cities","transport","tickets"].map(t=><button key={t} onClick={()=>setActiveTab(t)} style={{flex:1,padding:"6px 4px",border:"none",borderRadius:9,cursor:"pointer",background:activeTab===t?"#f5a623":"rgba(255,255,255,0.08)",color:activeTab===t?"#000":"#666",fontSize:10,fontWeight:"bold"}}>
+          {t==="cities"?"🏙️ Şehirler":t==="transport"?"🚄 Ulaşım":"🎟️ Biletler"}
+        </button>)}
+      </div>
+    </div>
+
+    <div style={{padding:11,paddingBottom:80}}>
+      {/* CITIES TAB */}
+      {activeTab==="cities"&&<div>
+        {cities.map(c=>{const p=getCityProg(c);return(
+          <div key={c.id} onClick={()=>{setSelCity(c.id);setCityTab("checklist");}} style={{background:c.bg,borderRadius:13,marginBottom:9,overflow:"hidden",cursor:"pointer",border:"1px solid rgba(255,255,255,0.05)"}}>
+            <div style={{padding:"12px 13px"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:7}}>
+                <div style={{display:"flex",alignItems:"center",gap:6}}>
+                  <span style={{fontSize:22}}>{c.flag}</span>
+                  <div><div style={{fontSize:14,fontWeight:"bold"}}>{c.name}</div><div style={{fontSize:9,opacity:0.6,marginTop:1}}>{c.country}</div></div>
+                </div>
+                <div style={{textAlign:"right"}}>
+                  <div style={{fontSize:10,color:c.accent,fontWeight:"bold"}}>{c.dates||"—"}</div>
+                  <div style={{fontSize:9,opacity:0.5,marginTop:1}}>{c.nights} gece</div>
+                </div>
+              </div>
+              <div style={{background:"rgba(0,0,0,0.3)",borderRadius:6,padding:"5px 8px"}}>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}><span style={{fontSize:8,color:"rgba(255,255,255,0.4)"}}>İlerleme</span><span style={{fontSize:9,fontWeight:"bold",color:c.accent}}>{p.done}/{p.total} · %{p.pct}</span></div>
+                <div style={{background:"rgba(0,0,0,0.4)",borderRadius:3,height:3}}><div style={{background:c.accent,height:3,borderRadius:3,width:`${p.pct}%`,transition:"width 0.4s"}}/></div>
+              </div>
+              <div style={{display:"flex",gap:4,marginTop:6,flexWrap:"wrap"}}>
+                {["restaurants","foods","snacks","attractions","activities"].map(t=>{const items=getItems(c.id,t);const done=items.filter((_,i)=>getChecked(c.id,t,i)).length;return items.length>0&&<div key={t} style={{background:"rgba(0,0,0,0.3)",borderRadius:5,padding:"2px 6px",fontSize:8,color:done===items.length?c.accent:"rgba(255,255,255,0.4)"}}>{done}/{items.length} {t==="restaurants"?"🍽️":t==="foods"?"🥘":t==="snacks"?"🍿":t==="attractions"?"🗺️":"🎯"}</div>;})}
+              </div>
+            </div>
+          </div>
+        );})}
+        {/* ADD BUTTONS */}
+        <div style={{display:"flex",gap:6,marginTop:4}}>
+          <button onClick={()=>setAddMode("browser")} style={{flex:1,background:"linear-gradient(135deg,#0d2a1a,#1a4a2a)",border:"1px solid #2a6a3a",color:"#4fc3f7",borderRadius:10,padding:"10px 8px",cursor:"pointer",fontSize:10,fontWeight:"bold",display:"flex",alignItems:"center",justifyContent:"center",gap:5}}><PlusIcon s={12}/>🌍 Avrupa Rehberi</button>
+          <button onClick={()=>setAddMode("manual")} style={{flex:1,background:"#0d0d0d",border:"1px solid #1a1a1a",color:"#666",borderRadius:10,padding:"10px 8px",cursor:"pointer",fontSize:10,fontWeight:"bold",display:"flex",alignItems:"center",justifyContent:"center",gap:5}}><PlusIcon s={12}/>✏️ Manuel Ekle</button>
+        </div>
+      </div>}
+
+      {/* TRANSPORT TAB */}
+      {activeTab==="transport"&&<div>
+        <div style={{fontSize:9,color:"#334",marginBottom:10}}>💡 Hepsi 3 kişi için. Tren biletleri esnek — erken alın!</div>
+        {TRANSPORT.map((t,i)=><div key={i} style={{background:"#0d0d0d",borderRadius:11,marginBottom:7,padding:"11px 12px",border:"1px solid #181818"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
+            <div><div style={{fontSize:13,fontWeight:"bold",color:"#ddd"}}>{t.from} → {t.to}</div><div style={{fontSize:10,color:"#334",marginTop:2}}>{t.type} · {t.duration}</div></div>
+            <div style={{textAlign:"right"}}><div style={{fontSize:11,fontWeight:"bold",color:"#f5a623"}}>{t.price}</div><div style={{fontSize:9,color:"#334",marginTop:1}}>3 kişi: {t.total}</div></div>
+          </div>
+          <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
+            <a href={`https://www.${t.book.split(" / ")[0]}`} target="_blank" rel="noreferrer" style={{background:"rgba(79,195,247,0.1)",border:"1px solid rgba(79,195,247,0.3)",color:"#4fc3f7",borderRadius:6,padding:"4px 8px",fontSize:9,fontWeight:"bold"}}>🔗 {t.book.split(" / ")[0]}</a>
+            <span style={{fontSize:9,color:t.tip.includes("HEMEN")?"#ef5350":"#334"}}>{t.tip}</span>
+          </div>
+        </div>)}
+      </div>}
+
+      {/* TICKETS TAB */}
+      {activeTab==="tickets"&&<div>
+        <div style={{background:"linear-gradient(135deg,#1a0a0a,#2a1010)",borderRadius:10,padding:"9px 11px",marginBottom:10,border:"1px solid #3a1010"}}>
+          <div style={{fontSize:10,fontWeight:"bold",color:"#ef5350",marginBottom:3}}>🔴 HEMEN ALINMASI GEREKENLER</div>
+          <div style={{fontSize:9,color:"#5a2020",lineHeight:1.5}}>Son Akşam Yemeği (Milano) biletleri ve Venedik-İstanbul uçuşu kritik! Her gün doluyor.</div>
+        </div>
+        {TICKETS.map((t,i)=><div key={i} style={{background:"#0d0d0d",borderRadius:10,marginBottom:6,padding:"10px 11px",border:`1px solid ${t.color}22`}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:5}}>
+            <div><div style={{fontSize:12,fontWeight:"bold",color:"#ddd"}}>{t.name}</div><div style={{fontSize:9,color:"#334",marginTop:1}}>{t.city}</div></div>
+            <span style={{background:`${t.color}22`,color:t.color,borderRadius:6,padding:"2px 7px",fontSize:9,fontWeight:"bold",whiteSpace:"nowrap"}}>{t.urgent?"🔴 ACIL":"⏰"}</span>
+          </div>
+          <div style={{fontSize:9,color:t.color,marginBottom:6}}>📅 {t.when}</div>
+          <a href={`https://www.${t.url}`} target="_blank" rel="noreferrer" style={{display:"inline-flex",alignItems:"center",gap:3,background:`${t.color}15`,border:`1px solid ${t.color}44`,color:t.color,borderRadius:6,padding:"5px 9px",fontSize:9,fontWeight:"bold"}}>🔗 {t.url}</a>
+        </div>)}
+      </div>}
+    </div>
+
+    {/* BOTTOM NAV */}
+    <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:480,background:"rgba(8,8,8,0.97)",backdropFilter:"blur(10px)",borderTop:"1px solid #141414",padding:"8px 13px 12px",display:"flex",gap:6}}>
+      {["cities","transport","tickets"].map(t=><button key={t} onClick={()=>setActiveTab(t)} style={{flex:1,padding:"7px 4px",border:"none",borderRadius:9,cursor:"pointer",background:activeTab===t?"#f5a623":"rgba(255,255,255,0.06)",color:activeTab===t?"#000":"#444",fontSize:10,fontWeight:"bold"}}>
+        {t==="cities"?"🏙️ Şehirler":t==="transport"?"🚄 Ulaşım":"🎟️ Biletler"}
+      </button>)}
+    </div>
+  </div>;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
 </html>
